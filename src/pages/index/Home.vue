@@ -172,8 +172,10 @@
             active: false,
             url: 'smallTalk.html',
             name: 'smallTalk.html',
+            btnRight: this.createProjectConfiga,
             icon: require('../../assets/images/home-tab-users.png'),
             activeIcon: require('../../assets/images/home-tab-users-active.png'),
+            type: '5'
           },
           {
             showUnread: true,
@@ -210,7 +212,14 @@
         this.pages.forEach((page, pageIndex) => {
           if (index === pageIndex) {
             page.active = true
-            this.header.btnRight = page.type === '3' ? this.createProjectConfig : page.btnRight
+            if(page.type === '3'){
+              this.header.btnRight = this.createProjectConfig
+            }else if(page.type === '5'){
+              this.header.btnRight = this.createProjectConfiga
+            }else{
+              this.header.btnRight = page.btnRight
+            }
+            // this.header.btnRight = page.type === '3' ? this.createProjectConfig : page.btnRight
             this.header.showSearch = page.showSearch
             this.header.title = page.headTitle || page.title
             this.header.showLocation = this.header.btnRight && this.header.btnRight.showLocation
@@ -274,6 +283,16 @@
           title: '添加项目',
           url: 'project_add.html',
           showLocation: true,
+          style: 'font-size:28px;'
+        }
+      },
+      createProjectConfiga () {
+        return {
+          text: '+',
+          openWindow: true,
+          title: '通讯录',
+          url: 'register_users.html',
+          showLocation: false,
           style: 'font-size:28px;'
         }
       },

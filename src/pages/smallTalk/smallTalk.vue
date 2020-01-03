@@ -1,127 +1,57 @@
 <template>
     <div id="app">
-        <div class="empty-message" v-if="isEmpty">
-            <img src="../../assets/images/empty-messages.png">
-            <div>暂无消息内容</div>
+        <div>
+            <ul class="register-users-select-container">
+                <li v-for="(item,index) in unreadList" :key="index" @click="toChat">
+                    <img :src="item.avatarUrl"/>
+                    <div class="unread_point" v-show="item.notifyCount != 0">{{item.notifyCount}}</div>
+                    <font>{{item.juname}}</font>
+                    <span v-text="formatDate(item.newMessageCreated*1000,'yyyy-MM-dd hh:mm:ss')"></span>
+                </li>
+            </ul>
         </div>
-        <!-- <ul class="messages-container" v-else>
-            <li class="messages-new" @click="openSelectUsers">找人聊天</li>
-            <li v-for="message in messages" @click="toDetail(message)">
-                <div class="avatar">
-                    <img src="../../assets/images/avatar-settings.png" v-if="message.targetUserId === 'system'"/>
-                    <img :src="message.avatarUrl" v-else>
-                    <span class="unread-tag" v-if="message.unread > 0"></span>
-                </div>
-                <div class="title">
-                    <span class="name" v-html="message.juname || '&nbsp;'"></span>
-                    <span class="time" v-text="formatTime(message.updated)"></span>
-                </div>
-                <div class="content" v-html="formatContent(message)"></div>
-            </li>
-        </ul> -->
     </div>
 </template>
 
 <script>
   import {notifyCount} from '../../utils/DataUtils'
-  import {getUserMessages, markTargetUserMessageAllRead} from '../../utils/Sqlite'
+  import {formatDate, clearStorage} from '../../utils/CommonUtils'
   import {addEventListener, apiReady, openWindow, sendEvent} from '../../utils/ApiCloudUtils'
-  import {getCacheRegisteredUsers, getCacheUserById} from '../../utils/CacheUtils'
-  import {diffTimestampFormat, formatDate, parseEmojiContent} from '../../utils/CommonUtils'
 
   export default {
     name: 'smallTalk',
     components: {},
     data () {
       return {
-        messages: [],
-        users: [],
-        currentTimestamp: new Date().getTime()
+        unreadList:[]   
       }
     },
     async created () {
-      let {c,d} = await notifyCount()
-      console.log('object');
-      console.log(d);
-      addEventListener('rongcloud_get_message', this.getData.bind(this))
-      addEventListener('chat_send_message', this.getData.bind(this))
-      addEventListener('layout-windowViewAppear', this.getData.bind(this))
-
-      addEventListener('register_users_selected', ({ selectedUser, winName }) => {
-        if (winName !== window.api.winName) {
-          return
-        }
-
-        openWindow('chat.html', selectedUser.juname, {
-          selectedUser,
-          openChatBox: true,
-          showAvatar: { url: selectedUser.avatarUrl }
-        })
-      })
-      addEventListener('layout-btnRight-click', ({ selectedUser, winName }) => {
-        if (winName !== window.api.winName) {
-          return
-        }
-        this.openSelectUsers()
-      })
-
-      this.users = await getCacheRegisteredUsers()
-      this.getData()
-      await apiReady()
-      sendEvent('layout-showBtnRight', {
-        winName: window.api.winName,
-        btnRight: {
-          text: '+',
-          style: 'font-size:28px;'
-        }
-      })
+      this.getMessageList()
+ 
     },
     methods: {
-      formatTime (ts) {
-        let diff = (this.currentTimestamp - parseInt(ts)) / 1000
-        return diffTimestampFormat(diff, ts)
+      formatDate,
+      async getMessageList(){
+        let {c,d} = await notifyCount()
+        this.unreadList = d
+        console.log(this.unreadList)
+        // setTimeout(() => {
+        //   this.getMessageList()
+        // }, 2000)
+        
       },
-      async getData () {
-        let messages = await getUserMessages()
-        this.messages = messages.map(message => {
-          if (message.targetUserId === 'system') {
-            message.juname = '系统消息'
-          } else {
-            let user = getCacheUserById(this.users, message.targetUserId)
-            message.juname = user && user.juname ? user.juname : ''
-            message.avatarUrl = user && user.avatarUrl ? user.avatarUrl : ''
-          }
-          return message
-        })
-        console.log('get messages', JSON.stringify(this.messages, null, 4))
-      },
-      openSelectUsers () {
-        openWindow('register_users.html', '选择人员', {
-          winName: window.api.winName,
-          timeToCloseWindow: 500
-        })
-      },
-      async toDetail (message) {
-        const url = message.targetUserId === 'system' ? '../../assets/images/avatar-settings.png' : message.avatarUrl
-        openWindow('chat.html', message.juname, {
-          selectedUser: { juid: message.targetUserId },
-          openChatBox: true,
-          showAvatar: { url }
-        })
-      },
-      formatContent (message) {
-        if (message.objectName === 'RC:TxtMsg') {
-          return parseEmojiContent(message.contentText)
-        } else if (message.objectName === 'RC:ImgMsg') {
-          return '[图片]'
-        }
+      toChat(){
+        
+          let { winName, timeToCloseWindow } = await getPageParams()
+          sendEvent('register_users_selected', {
+            winName,
+            selectedUser: this.selectedUser
+          })
 
-        return '&nbsp;'
-      }
-    },
-    computed: {
-      isEmpty () {
-        return this.messages.length === 0
+          setTimeout(() => {
+            closeWindow()
+          }, timeToCloseWindow)
       }
     }
   }
@@ -130,119 +60,89 @@
 <style lang="less">
     @import "../../assets/style";
 
-    .empty-message {
-        @height: 228px;
-        @width: 200px;
+    .register-users-select-search {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px 52px 10px 22px;
+        z-index: 999;
+        background: #fff;
 
-        position: absolute;
-        left: 50%;
-        top: 40%;
-        margin-top: -@height/2;
-        margin-left: -@width/2;
-        height: @height;
-        width: @width;
+        & > input {
+            padding-left: 10px;
+            height: 35px;
+            line-height: 35px;
+            width: 100%;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
 
-        font-size: 14px;
-        color: #8D92A3;
-        text-align: center;
-
-        img {
-            width: 200px;
+        &:before {
+            position: absolute;
+            content: '';
+            right: 22px;
+            top: 10px;
+            width: 20px;
+            height: 33px;
+            background-image: data-uri('image/png;base64', '../../assets/images/Search.png');
+            background-size: 20px auto;
+            background-repeat: no-repeat;
+            background-position: center;
         }
     }
 
-    .messages-container {
+    .register-users-select-title {
+        margin-bottom: 10px;
+        height: 30px;
+        line-height: 30px;
+        padding: 0 22px;
+        font-size: 20px;
+        color: #22242A;
+        font-weight: 900;
+    }
+
+    .register-users-select-container {
         list-style: none;
 
         li {
-            &:not(.messages-new) {
-                position: relative;
-                padding: 20px;
-                height: 88px;
+            position: relative;
+            padding: 20px 22px 20px 83px;
+            height: 88px;
 
-                .avatar {
-                    position: absolute;
-                    left: 20px;
-                    top: 20px;
-                    width: 48px;
-                    height: 48px;
+            & > img {
+                position: absolute;
+                left: 22px;
+                top: 20px;
+                height: 48px;
+                width: 48px;
+                border-radius: 50%;
+                -webkit-border-radius: 50%;
+            }
 
-                    & > img {
-                        height: 100%;
-                        width: 100%;
-                        -webkit-border-radius: 50%;
-                        -moz-border-radius: 50%;
-                        border-radius: 50%;
-                    }
+            font {
+                display: block;
+                color: #22242a;
+                font-size: 14px;
+                line-height: 22px;
+                margin-bottom: 3px;
+            }
 
-                    .unread-tag {
-                        @size: 9px;
-                        position: absolute;
-                        right: 2px;
-                        bottom: 2px;
-                        width: @size;
-                        height: @size;
-                        text-align: center;
-                        font-size: 12px;
-                        background: #51DC8E;
-                        -webkit-border-radius: 50%;
-                        border-radius: 50%;
-                        border: 1px solid #fff;
-
-                        /*&:after {
-                            @insideSize: 9px;
-                            position: absolute;
-                            content: '';
-                            left: (@baseSize - @insideSize)/2;
-                            top: (@baseSize - @insideSize)/2;
-                            width: @insideSize;
-                            height: @insideSize;
-                            background: #51DC8E;
-                            -webkit-border-radius: 50%;
-                            border-radius: 50%;
-                        }*/
-                    }
-                }
-
-                .title {
-                    padding-left: 63px;
-
-                    .name {
-                        color: #22242A;
-                        font-size: 14px;
-                        line-height: 22px;
-                    }
-
-                    .time {
-                        float: right;
-                        font-size: 10px;
-                        color: #8D92A3;
-                        letter-spacing: 1px;
-                        text-align: right;
-                        line-height: 17px;
-                    }
-                }
-
-                .content {
-                    padding-left: 63px;
-                    white-space: nowrap;
-                    word-break: break-all;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    font-size: 12px;
-                    color: #8D92A3;
-                    line-height: 22px;
-                }
+            span {
+                display: block;
+                font-size: 12px;
+                line-height: 22px;
+                color: #8d92a3;
             }
 
             &:after {
                 position: absolute;
                 content: '';
                 left: 83px;
-                right: 22px;
+                right: 20px;
                 bottom: 0;
                 height: 1px;
-                background: #d5d5d5;
+                background: #eee;
                 -webkit-transform: scaleY(0.5);
                 -moz-transform: scaleY(0.5);
                 -ms-transform: scaleY(0.5);
@@ -250,32 +150,45 @@
                 transform: scaleY(0.5);
             }
 
-            &.messages-new {
-                position: relative;
-                padding: 5px;
-                line-height: 30px;
-                text-align: center;
-
-                &:before {
-                    position: absolute;
-                    content: '';
-                    top: 14px;
-                    right: 22px;
-                    height: 10px;
-                    width: 10px;
-                    border-right: 1px solid #d5d5d5;
-                    border-bottom: 1px solid #d5d5d5;
-                    -webkit-transform: rotate(-45deg);
-                    -moz-transform: rotate(-45deg);
-                    -ms-transform: rotate(-45deg);
-                    -o-transform: rotate(-45deg);
-                    transform: rotate(-45deg);
-                }
+            &.active:before {
+                position: absolute;
+                content: '';
+                right: 20px;
+                top: 50%;
+                height: 30px;
+                width: 30px;
+                margin-top: -15px;
+                background-image: data-uri('image/png;base64', '../../assets/images/icon-right.png');
+                background-size: 15px auto;
+                background-position: center;
+                background-repeat: no-repeat;
             }
 
-            &:active {
+            &:last-child:after {
+                display: none;
+            }
+
+            &.disabled {
+                display: none;
+                background-color: rgba(230, 230, 230, 0.62);
+            }
+
+            &:not(.disabled):active {
                 background-color: #eee;
             }
+        }
+        .unread_point{
+          position: absolute;
+          width: 15px;
+          line-height: 14px;
+          background: red;
+          font-size: 12px;
+          text-align: center;
+          border-radius: 50%;
+          color: #fff;
+          left: 63px;
+          top: 15px;
+          z-index: 10;
         }
     }
 </style>

@@ -228,8 +228,7 @@
       },
       async getData () {
         let params = Object.assign({}, this.form)
-        console.log('params');
-        console.log(params);
+ 
         this.form.pageNumber === 1 && this.calcProjectCounts()
         let { c, d } = await getProjects(params)
         if (c !== 0) {
