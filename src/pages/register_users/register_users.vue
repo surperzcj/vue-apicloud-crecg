@@ -19,7 +19,7 @@
 </template>
 
 <script>
-  import {apiReady, closeWindow, getPageParams, sendEvent, toast, addEventListener} from '../../utils/ApiCloudUtils'
+  import {apiReady, closeWindow, openWindow, getPageParams, sendEvent, toast, addEventListener} from '../../utils/ApiCloudUtils'
   import {getCacheRegisteredUsers, getUserData} from '../../utils/CacheUtils'
 
   export default {
@@ -86,6 +86,7 @@
         }
 
         let { winName, timeToCloseWindow } = await getPageParams()
+
         sendEvent('register_users_selected', {
           winName,
           selectedUser: this.selectedUser
@@ -107,6 +108,11 @@
         }
 
         this.selectedUser = user
+        openWindow('chat.html', this.selectedUser.juname, {
+          selectedUser:this.selectedUser,
+          openChatBox: true,
+          showAvatar: { url: this.selectedUser.avatarUrl }
+        })
       }
     }
   }

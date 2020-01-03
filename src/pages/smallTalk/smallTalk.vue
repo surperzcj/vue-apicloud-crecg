@@ -2,7 +2,7 @@
     <div id="app">
         <div>
             <ul class="register-users-select-container">
-                <li v-for="(item,index) in unreadList" :key="index" @click="toChat">
+                <li v-for="(item,index) in unreadList" :key="index" @click="toChat()">
                     <img :src="item.avatarUrl"/>
                     <div class="unread_point" v-show="item.notifyCount != 0">{{item.notifyCount}}</div>
                     <font>{{item.juname}}</font>
@@ -16,7 +16,7 @@
 <script>
   import {notifyCount} from '../../utils/DataUtils'
   import {formatDate, clearStorage} from '../../utils/CommonUtils'
-  import {addEventListener, apiReady, openWindow, sendEvent} from '../../utils/ApiCloudUtils'
+  import {addEventListener, apiReady, openWindow, sendEvent, getPageParams} from '../../utils/ApiCloudUtils'
 
   export default {
     name: 'smallTalk',
@@ -43,15 +43,11 @@
       },
       toChat(){
         
-          let { winName, timeToCloseWindow } = await getPageParams()
-          sendEvent('register_users_selected', {
-            winName,
-            selectedUser: this.selectedUser
-          })
-
-          setTimeout(() => {
-            closeWindow()
-          }, timeToCloseWindow)
+          // openWindow('chat.html', this.selectedUser.juname, {
+          //   selectedUser:this.selectedUser,
+          //   openChatBox: true,
+          //   showAvatar: { url: this.selectedUser.avatarUrl }
+          // })
       }
     }
   }

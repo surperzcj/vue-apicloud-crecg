@@ -1,17 +1,17 @@
 <template>
     <div id="app" class="chat-container-app">
         <ul class="chat-container">
-            <li v-for="message in messages" :class="(selfUserId+'' === message.targetId)?'friend':''">
+            <li v-for="(message,index) in messages" :key="index" :class="(selfUserId+'' === message.targetId)?'friend':''">
                 <div class="weui-loadmore weui-loadmore_line" v-if="message.messageId == firstUnreadMessageId">
                     <span class="weui-loadmore__tips">以下为新消息</span>
                 </div>
                 <div class="time-split" v-if="message.timeSpan">
                     <span v-text="message.timeSpan"></span>
                 </div>
-                <!--<div class="avatar">-->
-                    <!--<img src="../../assets/images/avatar-settings.png" v-if="message.senderUserId === 'system'"/>-->
-                    <!--<img :src="(selfUserId+'' !== message.targetId)?myAvatar:friendUser.avatarUrl" v-else/>-->
-                <!--</div>-->
+                <!-- <div class="avatar">
+                    <img src="../../assets/images/avatar-settings.png" v-if="message.senderUserId !== 'system'"/>
+                    <img :src="(selfUserId+'' !== message.targetId)?myAvatar:friendUser.avatarUrl" v-else/>
+                </div> -->
                 <div class="content" v-html="formatContent(message)" @click="viewDetail(message)"></div>
             </li>
         </ul>
@@ -39,7 +39,11 @@
         page: 1,
         rongCloudClient: null,
         targetUser: null,
-        messages: [],
+        messages: [
+          {timeSpan:'12121212',senderUserId:'system',targetId:4},
+          {timeSpan:'12121212'},
+          {timeSpan:'12121212'},
+        ],
         widgetDir: null,
         selfUserId: getUserData().userId,
         myAvatar: getUserData().avatar,

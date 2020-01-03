@@ -47,7 +47,6 @@
         if (winName !== window.api.winName) {
           return
         }
-
         openWindow('chat.html', selectedUser.juname, {
           selectedUser,
           openChatBox: true,
