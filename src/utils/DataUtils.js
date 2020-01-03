@@ -295,3 +295,9 @@ export const removeUser = id => deleteData(`/api/user/${id}`)
 
 // 获取用户未读红点
 export const notifyCount = async () => getData(`/api/message/notify/count`)
+
+// 下拉获得聊天记录
+export const messagesBefore = async form => getData(`/api/messages/before`, form)
+
+// 轮询获得聊天记录
+export const messagesAfter = async form => getData(`/api/messages/after`, form)

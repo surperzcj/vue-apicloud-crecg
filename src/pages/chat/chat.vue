@@ -20,6 +20,7 @@
 
 <script>
   import {apiReady, getPageParams, sendEvent, toast, addEventListener, openWindow} from '../../utils/ApiCloudUtils'
+  import {messagesBefore, messagesAfter} from '../../utils/DataUtils'
   import {
     getFirstUnreadMessageId,
     getMessageGreaterThanMessageId,
@@ -39,11 +40,7 @@
         page: 1,
         rongCloudClient: null,
         targetUser: null,
-        messages: [
-          {timeSpan:'12121212',senderUserId:'system',targetId:4},
-          {timeSpan:'12121212'},
-          {timeSpan:'12121212'},
-        ],
+        messages: [],
         widgetDir: null,
         selfUserId: getUserData().userId,
         myAvatar: getUserData().avatar,
@@ -53,27 +50,50 @@
     },
     async created () {
       await apiReady()
-      this.firstUnreadMessageId = await getFirstUnreadMessageId()
-      console.log('firstUnreadMessageId', this.firstUnreadMessageId)
+      // this.firstUnreadMessageId = await getFirstUnreadMessageId()
+      // console.log('firstUnreadMessageId', this.firstUnreadMessageId)
 
-      this.rongCloudClient = new RongCloud()
+      // this.rongCloudClient = new RongCloud()
       let { selectedUser } = await getPageParams()
       if (selectedUser.juid !== 'system') {
         this.openChatBox()
       }
 
-      this.targetUser = selectedUser
-      this.widgetDir = window.api.wgtRootDir
-      this.getData()
+      // this.targetUser = selectedUser
+      // this.widgetDir = window.api.wgtRootDir
+      // this.getData()
 
-      addEventListener('rongcloud_get_message', this.getLastDatas.bind(this))
+      // addEventListener('rongcloud_get_message', this.getLastDatas.bind(this))
 
-      if (selectedUser.juid !== 'system') {
-        let users = await getCacheRegisteredUsers()
-        this.friendUser = getCacheUserById(users, selectedUser.juid) || {}
-      }
+      // if (selectedUser.juid !== 'system') {
+      //   let users = await getCacheRegisteredUsers()
+      //   this.friendUser = getCacheUserById(users, selectedUser.juid) || {}
+      // }
+
+
+      let params = {
+          friendId:selectedUser.juid,
+          pageSize:20
+        }
+      this.getBeforeMessgaes(params)
     },
     methods: {
+      //获取历史聊天记录
+      async getBeforeMessgaes(params){
+        let {c,d} = await messagesBefore(params)
+        if(c === 0){
+          this.records = d.messages
+          console.log(d);
+          this.records.forEach(function(item,index){
+            let diff = (new Date().getTime() - item.created) / 1000
+            item.created = diffTimestampFormat(diff, item.created)
+          })
+          
+          // clearTimeout(this.timeout)
+
+          // this.getMessagesAfter()
+        }
+      },
       async markMessageRead () {
         markTargetUserMessageAllRead(this.targetUser.juid)
         sendEvent('read_message')
