@@ -59,16 +59,16 @@
         this.openChatBox()
       }
 
-      // this.targetUser = selectedUser
-      // this.widgetDir = window.api.wgtRootDir
-      // this.getData()
+      this.targetUser = selectedUser
+      this.widgetDir = window.api.wgtRootDir
+      this.getData()
 
-      // addEventListener('rongcloud_get_message', this.getLastDatas.bind(this))
+      addEventListener('rongcloud_get_message', this.getLastDatas.bind(this))
 
-      // if (selectedUser.juid !== 'system') {
-      //   let users = await getCacheRegisteredUsers()
-      //   this.friendUser = getCacheUserById(users, selectedUser.juid) || {}
-      // }
+      if (selectedUser.juid !== 'system') {
+        let users = await getCacheRegisteredUsers()
+        this.friendUser = getCacheUserById(users, selectedUser.juid) || {}
+      }
 
 
       let params = {
@@ -235,7 +235,7 @@
             }
           },
           isShowAddImg: false,
-          emotions: ['widget://images/chat/emoticons/basic.json']
+          emotions: ['widget://images/chat/emoticons/basic']
         }, ({ eventType, msg }) => {
           if (eventType !== 'send') {
             return
