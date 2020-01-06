@@ -235,7 +235,7 @@
             }
           },
           isShowAddImg: false,
-          emotions: ['widget://images/chat/emoticons/basic']
+          emotions: ['widget://images/chat/emoticons/basic.json']
         }, ({ eventType, msg }) => {
           if (eventType !== 'send') {
             return

@@ -1,14 +1,14 @@
 [{
-    "label": "常000用",
+    "label": "常用",
     "emotions": [{
-        "name": "Expression_10",
-        "text": "[大哭]"
+        "name": "Expression_1",
+        "text": "[微笑]"
     }, {
-        "name": "Expression_10",
-        "text": "[大哭]"
+        "name": "Expression_2",
+        "text": "[撇嘴]"
     }, {
-        "name": "Expression_10",
-        "text": "[大哭]"
+        "name": "Expression_3",
+        "text": "[色]"
     }, {
         "name": "Expression_4",
         "text": "[发呆]"
