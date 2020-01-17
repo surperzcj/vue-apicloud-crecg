@@ -11,6 +11,7 @@
         "animate.css": "^3.7.0",
         "axios": "^0.18.0",
         "babel-preset-latest": "^6.24.1",
+        "fastclick": "^1.0.6",
         "lodash": "^4.17.11",
         "md5": "^2.2.1",
         "v-tap": "^2.2.2",

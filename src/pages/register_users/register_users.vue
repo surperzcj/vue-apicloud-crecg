@@ -69,12 +69,12 @@
       this.selfId = userId
 
       await apiReady()
-      sendEvent('layout-showBtnRight', {
-        winName: window.api.winName,
-        btnRight: {
-          text: '选择'
-        }
-      })
+      // sendEvent('layout-showBtnRight', {
+      //   winName: window.api.winName,
+      //   btnRight: {
+      //     text: '选择'
+      //   }
+      // })
 
       addEventListener('layout-btnRight-click', async value => {
         if (window.api.winName !== value.winName) {
@@ -211,19 +211,19 @@
                 transform: scaleY(0.5);
             }
 
-            &.active:before {
-                position: absolute;
-                content: '';
-                right: 20px;
-                top: 50%;
-                height: 30px;
-                width: 30px;
-                margin-top: -15px;
-                background-image: data-uri('image/png;base64', '../../assets/images/icon-right.png');
-                background-size: 15px auto;
-                background-position: center;
-                background-repeat: no-repeat;
-            }
+            // &.active:before {
+            //     position: absolute;
+            //     content: '';
+            //     right: 20px;
+            //     top: 50%;
+            //     height: 30px;
+            //     width: 30px;
+            //     margin-top: -15px;
+            //     background-image: data-uri('image/png;base64', '../../assets/images/icon-right.png');
+            //     background-size: 15px auto;
+            //     background-position: center;
+            //     background-repeat: no-repeat;
+            // }
 
             &:last-child:after {
                 display: none;

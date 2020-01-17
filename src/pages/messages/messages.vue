@@ -1,30 +1,39 @@
 <template>
     <div id="app">
+      <div class="nav">
+              <div class="nav-box">
+                <div class="nav-push" @click="clickNav(1)">已推送
+                  <div class="border_blue" v-show="isNav == 1"></div>
+                </div>
+                <div class="nav-pull" @click="clickNav(2)">已接收
+                  <div class="border_blue" v-show="isNav == 2"></div>
+                </div>
+              </div>
+            </div>
         <div class="empty-message" v-if="isEmpty">
             <img src="../../assets/images/empty-messages.png">
             <div>暂无消息内容</div>
         </div>
         <ul class="messages-container" v-else>
-            <!--<li class="messages-new" @click="openSelectUsers">找人聊天</li>-->
-            <li v-for="message in messages" @click="toDetail(message)">
-                <div class="avatar">
-                    <img src="../../assets/images/avatar-settings.png" v-if="message.targetUserId === 'system'"/>
-                    <img :src="message.avatarUrl" v-else>
-                    <span class="unread-tag" v-if="message.unread > 0"></span>
-                </div>
-                <div class="title">
-                    <span class="name" v-html="message.juname || '&nbsp;'"></span>
-                    <span class="time" v-text="formatTime(message.updated)"></span>
-                </div>
-                <div class="content" v-html="formatContent(message)"></div>
+            <li v-for="(item,index) in list" :key='index' @click="goDetail(item.jpid,item.jppid,index)">
+              <div class="title" :class="{read_color:item.isRead === 1}">{{item.pname}}</div>
+              <div>
+                <span class="name" v-if="isNav == 1">推送对象：{{item.toUserName}}</span>
+                <span class="name" v-if="isNav == 2">发送人：{{item.formUserName}}</span>
+                <span class="time" v-text="formatDate(item.created*1000,'yyyy-MM-dd hh:mm:ss')"></span>
+              </div>
+              <div class="dian" >
+                <img style="width:100%;" @click.stop="delPush(item.jppid,index)" src="../../assets/images/3dian.png" alt="">
+              </div>
             </li>
         </ul>
     </div>
 </template>
 
 <script>
+  import {getProjectsPush, getProject, removePush, readPush, messagePush} from '../../utils/DataUtils'
   import {getUserMessages, markTargetUserMessageAllRead} from '../../utils/Sqlite'
-  import {addEventListener, apiReady, openWindow, sendEvent} from '../../utils/ApiCloudUtils'
+  import {addEventListener, apiReady, openWindow, sendEvent, listenPage, confirm, toast} from '../../utils/ApiCloudUtils'
   import {getCacheRegisteredUsers, getCacheUserById} from '../../utils/CacheUtils'
   import {diffTimestampFormat, formatDate, parseEmojiContent} from '../../utils/CommonUtils'
 
@@ -34,7 +43,14 @@
     data () {
       return {
         messages: [],
+        isNav:1,
         users: [],
+        list: [],
+        form:{
+          pageNumber: 1,
+          total: 0,
+          type:1
+        },
         currentTimestamp: new Date().getTime()
       }
     },
@@ -63,32 +79,71 @@
       this.users = await getCacheRegisteredUsers()
       this.getData()
       await apiReady()
-      sendEvent('layout-showBtnRight', {
-        winName: window.api.winName,
-        btnRight: {
-          text: '+',
-          style: 'font-size:28px;'
-        }
-      })
+      // sendEvent('layout-showBtnRight', {
+      //   winName: window.api.winName,
+      //   btnRight: {
+      //     text: '+',
+      //     style: 'font-size:28px;'
+      //   }
+      // })
     },
     methods: {
+      formatDate,
+      async goDetail(jpid,id,index){
+        let res = await getProject(jpid)
+        await readPush(id)
+        this.list[index].isRead = 1
+        let project = res.d.project
+        openWindow('project_detail.html', '项目详情', { project })
+
+      },
       formatTime (ts) {
         let diff = (this.currentTimestamp - parseInt(ts)) / 1000
         return diffTimestampFormat(diff, ts)
       },
-      async getData () {
-        let messages = await getUserMessages()
-        this.messages = messages.map(message => {
-          if (message.targetUserId === 'system') {
-            message.juname = '系统消息'
-          } else {
-            let user = getCacheUserById(this.users, message.targetUserId)
-            message.juname = user && user.juname ? user.juname : ''
-            message.avatarUrl = user && user.avatarUrl ? user.avatarUrl : ''
-          }
-          return message
-        })
-        console.log('get messages', JSON.stringify(this.messages, null, 4))
+      async delPush(id,index){
+        if (!await confirm('确认删除该消息吗？')) {
+          return
+        }
+        let { c, m } = await removePush(id)
+        toast(m)
+        if (c === 0) {
+          this.list.splice(index, 1)
+        }
+      },
+      clickNav(type){
+        if(type === this.isNav){  //防止多次触发
+          return
+        }
+        this.isNav = type
+        this.form = {
+          pageNumber: 1,
+          total: 0,
+          type:type
+        }
+        this.getData(type)
+      },
+      async getData (type) {
+        let params = Object.assign({}, this.form)
+
+        let { c, d } = await getProjectsPush(params)
+        
+        if (c !== 0) {
+          return
+        }
+        
+        let { rows, pages, total, extras, currentPage } = d
+        this.list = this.form.pageNumber === 1 ? rows : this.list.concat(rows)
+        console.log('this.list')
+        console.log(this.list)
+        this.form.total = total
+
+        if (this.form.pageNumber < pages) {
+          listenPage(() => {
+            this.form.pageNumber++
+            this.getData()
+          })
+        }
       },
       openSelectUsers () {
         openWindow('register_users.html', '选择人员', {
@@ -116,7 +171,7 @@
     },
     computed: {
       isEmpty () {
-        return this.messages.length === 0
+        return this.list.length === 0
       }
     }
   }
@@ -124,6 +179,40 @@
 
 <style lang="less">
     @import "../../assets/style";
+    .nav{
+      background:#fff;
+      padding:10px 0;
+      position: fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index: 100;
+      .nav-box{
+        display: flex;
+        border-radius: 5px;
+        margin: 0px auto;
+        height: 35px;
+        font-size:14px;
+        .nav-push,.nav-pull{
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 50%;
+          position:relative;
+        }
+      }
+    }
+    .border_blue{
+      position: absolute;
+      width: 15px;
+      height: 2px;
+      border-radius: 2px;
+      background: #6478D3;
+      color: #6478D3;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
 
     .empty-message {
         @height: 228px;
@@ -148,12 +237,38 @@
 
     .messages-container {
         list-style: none;
-
+        padding-top: 56px;
         li {
+          .title {
+              padding-right: 60px;  
+          }
+          .name {
+              color: #8D92A3;
+              font-size: 12px;
+              line-height: 22px;
+          }
+
+          .time {
+              font-size: 10px;
+              color: #8D92A3;
+              letter-spacing: 1px;
+              text-align: right;
+              line-height: 17px;
+              padding-left: 20px;
+          }
+          .dian{
+            position: absolute;
+            right: 20px;
+            top: 22px;
+            width: 40px;
+            padding: 0 10px;
+          }
+          .read_color{
+            color:#999;
+          }
             &:not(.messages-new) {
                 position: relative;
                 padding: 20px;
-                height: 88px;
 
                 .avatar {
                     position: absolute;
@@ -199,24 +314,7 @@
                     }
                 }
 
-                .title {
-                    padding-left: 63px;
-
-                    .name {
-                        color: #22242A;
-                        font-size: 14px;
-                        line-height: 22px;
-                    }
-
-                    .time {
-                        float: right;
-                        font-size: 10px;
-                        color: #8D92A3;
-                        letter-spacing: 1px;
-                        text-align: right;
-                        line-height: 17px;
-                    }
-                }
+                
 
                 .content {
                     padding-left: 63px;
@@ -233,8 +331,8 @@
             &:after {
                 position: absolute;
                 content: '';
-                left: 83px;
-                right: 22px;
+                left: 20px;
+                right: 20px;
                 bottom: 0;
                 height: 1px;
                 background: #d5d5d5;

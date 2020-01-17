@@ -2,7 +2,7 @@
     <div class="layout-container">
         <JHeader :title="header.title" :show-search="header.showSearch"
                  v-on:btnLeftClick="btnLeftClick" v-on:btnRightClick="btnRightClick"
-                 :btn-right="header.btnRight" :show-location="header.showLocation" v-show="showHeader"
+                 :btn-right="header.btnRight" :show-location="header.showLocation" :show-linkman="header.showLinkman" v-show="showHeader"
                  :isMove="header.isMove"
                  />
         <div class="layout-content">
@@ -13,6 +13,7 @@
                  v-for="(page,pageIndex) in pages"
                  @click="tabPage(pageIndex)">
                 <div class="btn-animation-ripple-content"></div>
+                <div class="jiaobiao" v-show="page.corner && unReadCount != 0">{{unReadCount}}</div>
                 <span>
                     <img :src="page.active?page.activeIcon:page.icon" alt="">
                 </span>
@@ -35,7 +36,7 @@
   } from '../../utils/ApiCloudUtils'
   import {getUserUnreadMessageNumber} from '../../utils/Sqlite'
   import {LAYOUT_FOOTER_HEIGHT, LAYOUT_HEADER_HEIGHT} from '../../ProjectContants'
-
+  import {notifyCount} from '../../utils/DataUtils'
   export default {
     name: 'home',
     components: {
@@ -46,6 +47,7 @@
 
       return {
         pages: pages,
+        unReadCount:0,
         unreadMessageNumber: 0,
         canCreateProject: false,
         header: {
@@ -53,6 +55,7 @@
           showSearch: false,
           btnRight: null,
           showLocation: false,
+          showLinkman: false,
           isMove: false
         },
         currentPageIndex: 0,
@@ -92,6 +95,7 @@
           name: 'home_content'
         })
       })
+      
 
       addEventListener('rongcloud_get_message', () => {
         this.checkHasUnreadMessages()
@@ -107,6 +111,17 @@
         this.handlePageScroll(this.currentPageIndex)
       })
       this.checkHasUnreadMessages()
+
+      addEventListener('unread-List', ({ unreadList }) => {
+        let unReadCount = 0
+        unreadList.forEach(function(item){
+          if(item.notifyCount){
+            unReadCount += Number(item.notifyCount)
+          }
+        })
+        this.unReadCount = unReadCount
+      })
+      
     },
     methods: {
       // isMoveLeft () {
@@ -114,6 +129,7 @@
       //     this.header.isMove = true
       //   }
       // },
+      
       async checkHasUnreadMessages () {
         this.unreadMessageNumber = await getUserUnreadMessageNumber()
       },
@@ -172,7 +188,9 @@
             active: false,
             url: 'smallTalk.html',
             name: 'smallTalk.html',
-            btnRight: this.createProjectConfiga,
+            btnRight: this.createProjectConfig,
+            corner:true,
+            showLinkman:true,
             icon: require('../../assets/images/home-tab-users.png'),
             activeIcon: require('../../assets/images/home-tab-users-active.png'),
             type: '5'
@@ -214,15 +232,15 @@
             page.active = true
             if(page.type === '3'){
               this.header.btnRight = this.createProjectConfig
-            }else if(page.type === '5'){
-              this.header.btnRight = this.createProjectConfiga
             }else{
               this.header.btnRight = page.btnRight
             }
             // this.header.btnRight = page.type === '3' ? this.createProjectConfig : page.btnRight
             this.header.showSearch = page.showSearch
+            this.header.showLinkman = page.showLinkman
             this.header.title = page.headTitle || page.title
             this.header.showLocation = this.header.btnRight && this.header.btnRight.showLocation
+            
             this.header.isMove = true
           } else {
             page.active = false
@@ -286,16 +304,6 @@
           style: 'font-size:28px;'
         }
       },
-      createProjectConfiga () {
-        return {
-          text: '+',
-          openWindow: true,
-          title: '通讯录',
-          url: 'register_users.html',
-          showLocation: false,
-          style: 'font-size:28px;'
-        }
-      },
       showHeader () {
         return this.pages.length - this.currentPageIndex !== 1
       }
@@ -354,6 +362,18 @@
                     background-color: red;
                 }
             }
+        }
+        .jiaobiao{
+          position: absolute;
+          right: 50%;
+          transform: translateX(24px);
+          color: #fff;
+          background: red;
+          border-radius: 50%;
+          font-size: 7px;
+          width: 12px;
+          height: 12px;
+          line-height: 11px;
         }
     }
 </style>

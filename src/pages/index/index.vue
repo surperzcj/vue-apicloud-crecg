@@ -15,7 +15,7 @@
   import RongCloud from "../../utils/RongCloud";
   import {apiReady, sendEvent} from "../../utils/ApiCloudUtils";
   import {getSqliteClient, insertMessageToDb} from "../../utils/Sqlite";
-
+  import {notifyCount, notifyPush} from '../../utils/DataUtils'
   export default {
     name: 'app',
     data() {
@@ -23,6 +23,7 @@
         isLogin: isUserLogin(),
         rongCloud: null,
         sqlite: null,
+        unread:0,
         viewedGuide: userViewGuide()
       }
     },
@@ -58,8 +59,27 @@
         window.api.closeFrameGroup({name: 'home_content'});
         this.isLogin = false;
       })
+      this.getMessageList()     //未读消息
+      this.notify()     //未读推送消息
+
     },
     methods: {
+      async getMessageList(){
+        let {c,d} = await notifyCount()
+        sendEvent('unread-List', { unreadList: d })
+        setTimeout(() => {
+          this.getMessageList()
+        }, 1000)
+      },
+      async notify () {
+        let {c,d} = await notifyPush()
+        if(c===0){
+          sendEvent('unread-push-list', { unreadList: d.length })
+        }
+        setTimeout(() => {
+          this.notify()
+        }, 3000)
+      },
       guideConfirm() {
         setUserViewedGuide();
         this.viewedGuide = true;

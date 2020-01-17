@@ -73,7 +73,10 @@
       this.name = user.name
       this.mobile = user.mobile
       this.avatar = user.avatar
-      this.setUnread()
+      addEventListener('unread-push-list', ({ unreadList }) => {
+        this.unread = unreadList
+      })
+      // this.setUnread()
       this.getData()
 
       setInterval(() => {

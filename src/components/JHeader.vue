@@ -9,6 +9,8 @@
         ></div>
         <div class="c-header-right c-header-text" :style="btnRight.style" v-if="btnRight" v-text="btnRight.text"
              @click="btnRightClick"></div>
+        
+        <div class="c-header-right c-linkman" v-if="showLinkman" @click="linkmanClick"></div>
         <div class="c-header-right c-location" v-if="showLocation" @click="locationClick"></div>
         <div class="c-header-right c-remove-project" v-if="showRemoveIcon" @click="removeIconClick"></div>
     </div>
@@ -19,7 +21,7 @@
 
   export default {
     name: 'jheader',
-    props: ['title', 'showBack', 'showSearch', 'btnRight', 'showLocation', 'newBg', 'isMove'],
+    props: ['title', 'showBack', 'showSearch', 'btnRight', 'showLocation', 'showLinkman', 'newBg', 'isMove'],
     data () {
       return {
         showRemoveIcon: false,
@@ -61,6 +63,9 @@
       },
       locationClick () {
         openWindow('project_location.html', '省份地图')
+      },
+      linkmanClick () {
+        openWindow('register_users.html', '通讯录')
       }
     }
   }
@@ -190,6 +195,13 @@
         &.c-location {
             right: 44px !important;
             background-image: data-uri('image/png;base64', '../assets/images/Local.png');
+            background-size: 20px auto;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        &.c-linkman {
+            // right: 44px !important;
+            background-image: data-uri('image/png;base64', '../assets/images/linkman.png');
             background-size: 20px auto;
             background-repeat: no-repeat;
             background-position: center;

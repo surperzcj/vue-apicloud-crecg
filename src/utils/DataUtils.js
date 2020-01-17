@@ -301,3 +301,16 @@ export const messagesBefore = async form => getData(`/api/messages/before`, form
 
 // 轮询获得聊天记录
 export const messagesAfter = async form => getData(`/api/messages/after`, form)
+
+// 发送聊天消息
+export const messagePush = async form => postData(`/api/message`, form)
+
+// 查询项目推送
+export const getProjectsPush = async form => getData(`/api/project/pushes`, form)
+
+// 删除推送
+export const removePush = async Id => deleteData(`/api/project/push/${Id}`)
+// 推送已读
+export const readPush = async Id => postData(`/api/project/push/${Id}/read`)
+// 未读推送
+export const notifyPush = async Id => getData(`/api/project/notify/pushes`)
