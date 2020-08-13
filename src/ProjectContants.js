@@ -5,8 +5,8 @@ if (window.location.href.indexOf('http') !== 0) {
 }
 
 // export const API_BASE_URL = useDevServer ? 'http://192.168.0.199:8081' : 'http://app.bjtkcloud.com'
-export const API_BASE_URL = useDevServer ? 'http://47.110.143.33:8081' : 'http://39.104.187.113'
-// export const API_BASE_URL = 'http://39.104.187.113:8082'
+// export const API_BASE_URL = useDevServer ? 'http://47.110.143.33:8081' : 'http://39.104.187.113'
+export const API_BASE_URL = 'http://47.110.143.33:8081'
 export const TERMINAL_HEADER_NAME = 'x-api-terminal'
 // 数据库存储路径
 export const DB_FILE_PATH = 'fs://crecg.db'
