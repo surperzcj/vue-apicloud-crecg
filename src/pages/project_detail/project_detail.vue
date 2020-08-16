@@ -101,6 +101,17 @@
             <div class="title">更多操作</div>
         </div>
         <div class="project-container" style="background: #fff;">
+            <div class="project-links ">
+                <div class="project-link">
+                    <div class="btn-animation-ripple" @click="toProjectDetailPage(xmaqPage)">
+                        <div class="btn-animation-ripple-content"></div>
+                        {{parsePageButtonName(xmaqPage)}}
+                    </div>
+                </div>
+                <div class="project-link weui-flex__item">
+                    &nbsp;
+                </div>
+            </div>
             <div class="project-links " v-for="pages in pageGroups">
                 <div class="project-link" v-for="page in pages">
                     <div class="btn-animation-ripple" @click="toProjectDetailPage(page)">
@@ -108,58 +119,70 @@
                         {{parsePageButtonName(page)}}
                     </div>
                 </div>
-                <div class="project-link weui-flex__item" v-if="pages.length < 3" v-for="a in Array(3-pages.length)">
-                    &nbsp;
-                </div>
             </div>
             <!-- <div class="more-operate_box">
               
             </div> -->
         </div>
         <div class="project-operas">
-                <div class="btn-box" style="text-align: center">
-                    <div class="share-detail detail-share">
-                        <div class="" @click="shareProject">
-                            分享详情
-                        </div>
+            <div class="btn-box" style="text-align: center">
+                <div class="share-detail detail-share">
+                    <div class="" @click="shareProject">
+                        分享详情
                     </div>
-                    <div class="other-btn" v-if="canEditProject">
-                        <div class="" @click="toProjectData">
-                            更多资料
-                        </div>
-                    </div>
-                    <div class="other-btn">
-                        <div class=""
-                             @click="$refs.pushProject.show()">
-                            推送项目
-                        </div>
-                    </div>
-                    
                 </div>
-                <div class="btn-box" style="text-align: center;margin-top: 10px"
-                     v-if="canMark || canCreateProject || canTurn">
-                    <div class="share-detail detail-share" v-if="canMark">
-                        <div class="" style="font-size: 12px"
-                             @click="toMarkProjectIncharge">
-                            指定负责人
-                        </div>
+                <div class="other-btn" v-if="canEditProject">
+                    <div class="" @click="toProjectData">
+                        更多资料
                     </div>
-                    <div class="other-btn" v-if="canCreateProject">
-                        <div class=""
-                             @click="cloneProject">
-                            项目克隆
-                        </div>
+                </div>
+                <div class="other-btn">
+                    <div class=""
+                          @click="$refs.pushProject.show()">
+                        推送项目
                     </div>
-                    <div class="other-btn" v-if="canTurn">
-                        <div class=""
-                             @click="$refs.turnProject.show()">项目移交
-                        </div>
+                </div>
+                
+            </div>
+            <div class="btn-box" style="text-align: center;margin-top: 10px"
+                  v-if="canMark || canCreateProject || canTurn">
+                <div class="share-detail detail-share" v-if="canMark">
+                    <div class="" style="font-size: 12px"
+                          @click="toMarkProjectIncharge">
+                        指定负责人
                     </div>
-                    <div class="other-btn color-set" v-for="show in [canMark ,canCreateProject , canTurn]"
-                         v-if="!show">
+                </div>
+                <div class="other-btn" v-if="canCreateProject">
+                    <div class=""
+                          @click="cloneProject">
+                        项目克隆
                     </div>
+                </div>
+                <div class="other-btn" v-if="canTurn">
+                    <div class=""
+                          @click="$refs.turnProject.show()">项目移交
+                    </div>
+                </div>
+                <div class="other-btn color-set" v-for="show in [canMark ,canCreateProject , canTurn]"
+                      v-if="!show">
                 </div>
             </div>
+        </div>
+
+        <!-- <div class="safeBg">
+          <div class="agreement">
+            5165415615156
+            <div class="consent"><span class="gou"></span>我已了解安全协议细则</div>
+            <div class="button">
+              <div class="fh">返回</div>
+              <div class="ty">已同意</div>
+            </div>
+          </div>
+          
+        </div>
+     -->
+    
+    
     </div>
 </template>
 
@@ -186,6 +209,15 @@
     components: { MultiSelector, UserSelector },
     data () {
       return {
+        xmaqPage:{
+          apiUrl: null,
+          jreid: 93,
+          jrename: "安全管理",
+          path: null,
+          pid: null,
+          routeUrl: "get:/project/{id}/safe",
+          type: null,
+        },
         project: {
           jpid: '',
           sourceType: '',
@@ -259,6 +291,7 @@
         return this.buttons.includes('get:/project/{id}/edit')
       },
       pageGroups () {
+        console.log(this.headers)
         return _.chunk(this.headers, 3)
       },
       manageUsers () {
@@ -336,6 +369,8 @@
             return openWindow('project_spend.html', jrename, params)
           case 62:
             return openWindow('project_records.html', jrename, params)
+          case 93:
+            return openWindow('project_safe.html', jrename, params)
         }
       },
       buildColor ({ jreid }) {
@@ -409,6 +444,51 @@
 
 <style lang="less">
     @import "../../assets/style";
+    .safeBg{
+      position: fixed;
+      top:0;
+      bottom:0;
+      left:0;
+      right:0;
+      background:rgba(0,0,0,0.5);
+      z-index: 100;
+      .agreement{
+        position: absolute;
+        top:100px;
+        left:50px;
+        right:50px;
+        bottom:200px;
+        background:#fff;
+      }
+      .consent{
+        position: absolute;
+        bottom:0px;
+        .gou{
+          display:inline-block;
+          width:20px;
+          height:20px;
+          border:1px solid #000;
+        }
+      }
+      .button{
+        position: absolute;
+        bottom:-10px;
+        left:0;
+        right:0;
+        .fh{
+          left:0px;
+          width:100px;
+          line-height: 50px;
+          background:red;
+        }
+        .ty{
+          right:0px;
+          width:100px;
+          line-height: 50px;
+          background:red;
+        }
+      }
+    }
 
     body {
         background: #fafafc;
@@ -718,5 +798,9 @@
         background: transparent;
       }
     }
+
+    
+
+
     
 </style>

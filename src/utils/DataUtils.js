@@ -314,3 +314,16 @@ export const removePush = async Id => deleteData(`/api/project/push/${Id}`)
 export const readPush = async Id => postData(`/api/project/push/${Id}/read`)
 // 未读推送
 export const notifyPush = async Id => getData(`/api/project/notify/pushes`)
+
+// 获取安全管理任务列表
+export const safeList = async form => getData(`/api/project/tasks`, form)
+// 获取安全管理任务列表
+export const creatSafeTask = async form => postData(`/api/project/task`, form)
+// 获取任务
+export const getSafeTask = async form => getData(`/api/project/task`, form)
+// 修改任务
+export const putSafeTask = async form => putData(`/api/project/task`, form)
+// 删除任务
+export const delSafeTask = async Id => deleteData(`/api/project/task/${Id}`)
+// 上传文件
+export const uploadF = async form => postData(`/api/upload`, form)

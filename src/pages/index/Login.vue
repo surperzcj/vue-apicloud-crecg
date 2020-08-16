@@ -99,6 +99,7 @@
         }
 
         window.localStorage.setItem('user-login-remember', this.form.remember)
+        window.localStorage.setItem('user-info', JSON.stringify(d))
         if (this.form.remember) {
           window.localStorage.setItem('user-login-mobile', mobile)
           window.localStorage.setItem('user-login-password', password)
