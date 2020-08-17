@@ -169,18 +169,21 @@
             </div>
         </div>
 
-        <!-- <div class="safeBg">
+        <div class="safeBg" v-if="agreementData.isCheck">
           <div class="agreement">
-            5165415615156
-            <div class="consent"><span class="gou"></span>我已了解安全协议细则</div>
+            <div v-html="agreementData.content"></div>
+            <div class="consent" @click="tyxy = !tyxy">
+              <span class="gou">
+                <img v-show="tyxy" src="../../assets/images/icon-right.png">
+              </span>我已了解安全协议细则</div>
             <div class="button">
-              <div class="fh">返回</div>
-              <div class="ty">已同意</div>
+              <div class="fh btn" @click="agreementData.isCheck = false">返回</div>
+              <div class="ty btn" @click="checkProtocol(false)" :class="tyxy? '':'huiBg'">已同意</div>
             </div>
           </div>
           
         </div>
-     -->
+    
     
     
     </div>
@@ -200,7 +203,7 @@
     closeWindow,
     confirm
   } from '../../utils/ApiCloudUtils'
-  import {getProject, getProjectShare, modifyProjectShare, removeProject, turnProject} from '../../utils/DataUtils'
+  import {getProject, getProjectShare, modifyProjectShare, removeProject, turnProject, checkProtocol, gouProtocol} from '../../utils/DataUtils'
   import {getCacheRegisteredUsers, getUserData} from '../../utils/CacheUtils'
   import Wx from '../../utils/WxUtils'
 
@@ -209,6 +212,10 @@
     components: { MultiSelector, UserSelector },
     data () {
       return {
+        tyxy:false,
+        agreementData:{
+          isCheck:false
+        },
         xmaqPage:{
           apiUrl: null,
           jreid: 93,
@@ -240,6 +247,8 @@
         }
       })
       this.viewAppear()
+      await this.checkProtocol(true)
+      
       await this.getData()
 
       let users = await getCacheRegisteredUsers()
@@ -307,6 +316,9 @@
     },
     methods: {
       formatDate,
+      gouAgreement(){
+        this.tyxy = true
+      },
       viewAppear () {
         addEventListener('layout-windowViewAppear', ({ winName }) => {
           if (winName !== window.api.winName) {
@@ -318,6 +330,28 @@
       async getPageParams () {
         let { project } = await getPageParams()
         this.project = project
+      },
+      async checkProtocol (isLook) {
+        
+        let params = {
+            jpid:this.project.jpid
+          }
+        if(isLook){
+          let { c, d } = await checkProtocol(params)
+          if(c === 0){
+            this.agreementData = d
+          }
+        }else{
+          if(!this.tyxy) return
+          let { c, d, m } = await gouProtocol(params)
+          if (c === 0) {
+            toast(m)
+            setTimeout(() => {
+              this.agreementData.isCheck = false
+            }, 300)
+          }
+        }
+        
       },
       async getData () {
         let { c, d } = await getProject(this.project.jpid)
@@ -461,33 +495,53 @@
         background:#fff;
       }
       .consent{
-        position: absolute;
-        bottom:0px;
+          position: absolute;
+          bottom: 5px;
+          left: 10px;
+          display: flex;
+          align-items: center;
         .gou{
           display:inline-block;
           width:20px;
           height:20px;
-          border:1px solid #000;
+          margin-right:10px;
+          border:1px solid #cdcdd7;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          img{
+            width: 80%;
+            flex: 1;
+          }
         }
       }
       .button{
-        position: absolute;
-        bottom:-10px;
-        left:0;
-        right:0;
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            .btn{
+              width: 100px;
+              line-height: 40px;
+              border-radius: 5px;
+            }
         .fh{
-          left:0px;
-          width:100px;
-          line-height: 50px;
-          background:red;
+          left: 0px;
+          background: #fff;
         }
         .ty{
-          right:0px;
-          width:100px;
-          line-height: 50px;
-          background:red;
+          right: 0px;
+          background: #3F67E9;
+          color: #fff;
         }
       }
+    }
+
+    .huiBg{
+      background:#999!important;
     }
 
     body {

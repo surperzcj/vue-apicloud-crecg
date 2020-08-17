@@ -241,7 +241,6 @@
       let { project,edit } = await getPageParams()
       this.project = project
       this.isEdit = edit
-      console.log(project,'project000')
       // console.log(edit,'isEditProject')
 
       this.getSettings()
@@ -398,11 +397,11 @@
           var { c, m } = await creatSafeTask(params)
         }
         if (c === 0) {
-            toast(m)
-            setTimeout(() => {
-              closeWindow()
-            }, 300)
-          }
+          toast(m)
+          setTimeout(() => {
+            closeWindow()
+          }, 300)
+        }
       },
       viewThisImage () {
         const photoBrowser = window.api.require('photoBrowser')

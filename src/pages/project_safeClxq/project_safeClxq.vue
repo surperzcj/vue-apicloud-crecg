@@ -1,45 +1,62 @@
 <template>
     <div id="app">
-        <div v-if="!isSelfTack" class="progress-rollback" @click="rollback" :style="`height: 44px;`">
-            提交材料
-        </div>
-        <div v-else class="progress-rollback1">
-          <div class="left" @click="editTask">编辑任务</div>
-          <div class="right" @click="delTask">删除任务</div>
-        </div>
-        <ul class="project-progress" :style="`padding-bottom: ${footerHeight}px`">
-            <li>
-                <div class="progress-subtitle">
-                      {{progresses.taskName}}
-                  </div>
-                <div class="progress-title">
-                    <span v-text="'指定时间：'+formatDate(progresses.created)"></span>
-                    <span>创建人：{{progresses.createdJuname}}</span>
+        <div class="project-add-form">
+            <div class="form-item">
+                <label>提交人</label>
+                <input type="text" placeholder="请输入提交人名字" readonly v-model="juname"/>
+            </div>
+            <div class="form-item">
+                <label><span style='color:red;'>*</span>内容</label>
+                <input type="text" placeholder="请输入材料内容" v-if="isSelfTack" readonly v-model="form.content"/>
+                <input type="text" placeholder="请输入材料内容" v-else v-model="form.content"/>
+            </div>
+            <div class="form-item fomr-item">
+                <label>添加附件</label>
+                <span class="add_file" @click="uploadAttachment(progress)">
+                  <img src="../../assets/images/icon-add.png" alt="">
+                </span>
+            </div>
+            <ul class="progress-files" v-if="progress && progress.length > 0">
+                <li v-for="(file,fileIndex) in progress" :key="fileIndex">
+                    <div v-text="file.originName" @click="viewAttachment(file)"></div>
+                    <!-- <span class="remove"
+                          @click="removeFile(progress,fileIndex)"></span> -->
+                </li>
+            </ul>
+            <div class="form-item"></div>
+            <div class="form-item fomr-item">
+                <label>审核历史</label>
+            </div>
+            <div class="sh_item" v-for="(item,index) in taskDetail.auditList" :key="index">
+              <div class="stauts" v-if="item.status === 10">待审核</div>
+              <div class="stauts" v-if="item.status === 20">已拒绝</div>
+              <div class="stauts" v-if="item.status === 30">已通过</div>
+
+              <div class="content">
+                <div class="text">{{item.content}}</div>
+                <div class="bottom">
+                  <div class="name">{{item.juname}}</div>
+                  <div class="time">{{formatDate(item.created)}}</div>
                 </div>
-                
-                <div class="progress-opera-record">
-                    <div>参与人：<span v-text="progresses.taskMembersNameStr"></span></div>
-                </div>
-            </li>
-        </ul>
-        <div class="taskList">
-          <div class="item" v-for="(item,index) in progresses.taskDetailList" :key="index" @click="goTackDetail(item)">
-            <div class="content">
-              <div class="left">
-                <img src="../../assets/images/icon-add.png" alt="">
-                <div class="name">{{item.juname}}</div>
-              </div>
-              <div class="middle">
-                <div class="title">{{progresses.taskName}}</div>
-                <div class="time">于 {{formatDate(item.created*1000)}} 提交</div>
               </div>
             </div>
-            
-            <div class="right" v-if="item.status === 10">待审核</div>
-            <div class="right" v-if="item.status === 20">已拒绝</div>
-            <div class="right" v-if="item.status === 30">已通过</div>
-          </div>
         </div>
+
+
+
+
+        
+        <div class="progress-rollback1" v-if="isSelfTack">
+          <div class="left" @click="possTask(30)">通过</div>
+          <div class="right" @click="possTask(20)">拒绝</div>
+        </div>
+        <div class="progress-rollback1" v-else>
+          <div class="left" @click="postTask">确认提交</div>
+          <div class="right" @click="delTask">删除</div>
+        </div>
+
+        
+
         <create-record-form :visible.sync="showRecordForm"
                             :remark="remark?remark.remark:null"
                             @confirmed="confirmRemark"/>
@@ -52,6 +69,7 @@
   import ProjectHeader from '../../components/ProjectHeader.vue'
   import {
     getPageParams,
+    closeWindow,
     openDocReader,
     openFileBrowser,
     openPhotoViewer,
@@ -60,7 +78,6 @@
     confirm,
     uploadFile,
     addEventListener,
-    closeWindow, 
     openWindow
   } from '../../utils/ApiCloudUtils'
   import {
@@ -68,9 +85,11 @@
     getProjectProgresses,
     projectNextProgress, projectRollbackProgress, removeProgressRemark,
     removeProjectProgressFile,
-    uploadProjectProgressFile,
-    getSafeTask,
-    delSafeTask
+    putTaskDetail,
+    getTaskDetail,
+    delTaskDetail,
+    TaskAudit,
+    uploadProjectProgressFile
   } from '../../utils/DataUtils'
   import {formatDate} from '../../utils/CommonUtils'
   import {PROJECT_PROGRESS_LIB} from '../../ProjectContants'
@@ -81,12 +100,17 @@
     data () {
       return {
         isSelfTack:false,  // 自己创建的任务
-        userInfo:{},
+        form:{
+          ptdid:'',
+          content:'',
+        },
+        taskDetail:{},
+        juname:'',
         project: {},
         progresses: [],
         selectList: [],
         buttons: [],
-        progress: null,
+        progress: [],
         showRecordForm: false,
         planedTime: false,
         remarkProgress: null,
@@ -96,10 +120,11 @@
       }
     },
     async created () {
-      let { project, type } = await getPageParams()
+      let { project, isSelfTack } = await getPageParams()
       this.project = project
+      this.createdJuname = project.createdJuname
       console.log(this.project,'project')
-      this.userInfo = JSON.parse(localStorage.getItem('user-info'))
+      this.isSelfTack = isSelfTack
       this.getData()
 
 
@@ -112,9 +137,6 @@
       })
     },
     computed: {
-      goTaskDetail(params){
-        openWindow('project_safeDetail.html', '任务详情', params)
-      },
       isContract () {
         return this.type === 'contract'
       },
@@ -158,15 +180,32 @@
       }
     },
     methods: {
-      closeWindow, 
-      editTask(){
-        let params = { project: this.progresses,edit:true }
-        openWindow('project_addSafe.html','编辑任务', params)
-      },
+      closeWindow,
       async delTask(){
-        let id = this.progresses.ptid
-        console.log(this.progresses)
-        let { c, m } = await delSafeTask(id)
+        let { c, m } = await delTaskDetail(this.form.ptdid)
+        if (c === 0) {
+          toast(m)
+          setTimeout(() => {
+            closeWindow()
+          }, 300)
+        }
+      },
+      async postTask(){
+        let { c, m } = await putTaskDetail(this.form)
+        if (c === 0) {
+          toast(m)
+          setTimeout(() => {
+            closeWindow()
+          }, 300)
+        }
+      },
+      async possTask(status){
+        let params = {
+          ptdid:this.form.ptdid,
+          status:status,
+          content:''
+        }
+        let { c, m } = await TaskAudit(params)
         if (c === 0) {
           toast(m)
           setTimeout(() => {
@@ -184,31 +223,25 @@
         })
       },
       async getData () {
-        let { c, d } = await getSafeTask({
-          ptid:this.project.ptid
-        })
+        let parmas = {
+          ptdid:this.project.ptdid
+        }
+        let { c, d } = await getTaskDetail(parmas)
         if (c !== 0) {
           return
         }
-        console.log(d,'d')
-        this.progresses = d
-        if(this.userInfo.userId === this.progresses.createdJuid){
-          this.isSelfTack = true
-        }
-        
-
-        // let { project, progresses, buttons, planedTime } = d
-        // this.project = project
-        // this.buttons = buttons
-        // this.planedTime = planedTime
-        // this.progresses = progresses.map(p => {
-        //   p.libs = PROJECT_PROGRESS_LIB[p.lib]
-        //   if (p.libs.options) {
-        //     // p.libValue = p.value ? p.libs.options[parseInt(p.value)] : '更改状态';
-        //     p.libValue = '更改状态'
-        //   }
-        //   return p
-        // })
+        this.taskDetail = d
+        this.form.ptdid = d.ptdid
+        this.form.content = d.content
+        d.attachmentList.map(item=>{
+          let box = {
+            originName:item.originName,
+            url:item.fullUrl
+          }
+          this.progress.push(box)
+        })
+        console.log(this.progress,'this.progresses')
+        this.juname = d.juname
       },
       modifyProgressBySelector (item) {
         console.log('callback', JSON.stringify(item, null, 4))
@@ -256,6 +289,7 @@
         if (r === null) {
           return
         }
+        console.log(r)
 
         this.uploadFile(progress, r.url, r.name)
       },
@@ -265,23 +299,24 @@
         if (r.c !== 0) {
           return
         }
+        console.log(r)
+        
+        // let { c, d } = await uploadFile(this.project.jpid, progress.id, r.d.key, name)
+        // if (c !== 0) {
+        //   return
+        // }
 
-        let { c, d } = await uploadProjectProgressFile(this.project.jpid, progress.id, r.d.key, name)
-        if (c !== 0) {
-          return
-        }
-
-        progress.files.push(d)
+        this.progress.push(r.d)
       },
       async removeFile (files, index) {
         let file = files[index]
-        let { c } = await removeProjectProgressFile(file.jpid, file.progid, file.id)
-        if (c === 0) {
+        // let { c } = await removeProjectProgressFile(file.jpid, file.progid, file.id)
+        // if (c === 0) {
           files.splice(index, 1)
-        }
+        // }
       },
       viewAttachment (file) {
-        if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.fname)) {
+        if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.originName)) {
           openPhotoViewer(file.url)
         } else {
           openDocReader(file.url)
@@ -311,13 +346,25 @@
           this.getData()
         }
       },
-      async goTackDetail (item) {
-        let params = { project: item,isSelfTack:this.isSelfTack }
-        openWindow('project_safeClxq.html','材料详情', params)
-      },
       async rollback () {
-        let params = { project: this.progresses }
-        openWindow('project_safeCl.html','提交材料', params)
+        if (!await confirm('是否撤销操作，会退到上一进度？')) {
+          return
+        }
+
+        let id
+        if (this.progresses.every(({ status }) => status === 3)) {
+          id = this.progresses[this.progresses.length - 1].id
+        } else if (this.progresses.every(({ status }) => status === 1)) {
+          return
+        } else {
+          id = this.progresses.filter(({ status }) => status === 2)[0].id
+        }
+
+        let { c, m } = await projectRollbackProgress(this.project.jpid, id)
+        if (c === 0) {
+          toast(m)
+          this.getData()
+        }
       }
     }
   }
@@ -325,38 +372,42 @@
 
 <style lang="less">
     @import "../../assets/style";
-    .taskList{
-      .item{
-          display: flex;
-          justify-content: space-between;
-          margin: 0 20px;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 10px;
-          margin-bottom: 10px;
-        .content{
-          display: flex;
 
-        }
-        .left{
-          text-align: center;
-          img{}
-          .name{}
-        }
-        .middle{
-          margin-left: 15px;
-          .title{}
-          .time{
-            font-size: 14px;
-            color: #666;
+    .sh_item{
+        display: flex;
+        padding: 0 20px;
+        margin-bottom: 20px;
+      .stauts{
+        border: 1px solid #999;
+        border-radius: 50%;
+        width: 50px;
+        line-height: 50px;
+        height: 50px;
+        font-size: 12px;
+        text-align: center;
+        margin-right: 10px;
+      }
+      .content{
+        flex: 1;
+        .text{}
+        .bottom{
+            display: flex;
+            justify-content: space-between;
+          .name{
+            color:#666;
           }
-        }
-        .right{
-          font-weight:bold;
+          .time{
+            color:#999;
+          }
         }
       }
     }
 
 
+
+    .project-add-form{
+          background-color: #fff!important;
+    }
     .project-plan-time {
         padding: 0 26px;
         display: flex;
@@ -417,48 +468,17 @@
             background-color: @baseColorActive;
         }
     }
-    .progress-rollback1 {
-        position: fixed;
-        left: 0;
-        right: 0;
-        line-height: 44px;
-        z-index: 100;
-        bottom: 0;
-        display: flex;
-        justify-content: space-between;
-        .left{
-          line-height: 44px;
-          text-align: center;
-          color: #fff;
-          background-color:#6478D3;
-          border-radius: 22px;
-          flex: 1;
-          margin: 10px;
-        }
-        .right{
-          line-height: 44px;
-          text-align: center;
-          color: #fff;
-          background-color:#f43530;
-          border-radius: 22px;
-          flex: 1;
-          margin: 10px;
-        }
-    }
 
     .project-progress {
         margin-left: 16px;
-        margin-right: 16px;
         margin-top: 7px;
         list-style: none;
 
         & > li {
             position: relative;
-            padding: 20px 20px 20px 20px;
+            padding: 20px 20px 20px 68px;
             letter-spacing: 1px;
             min-height: 88px;
-            background: #efefef;
-            margin-bottom:16px;
 
             &:after {
                 position: absolute;
@@ -471,51 +491,48 @@
                 transform: scaleY(0.5);
             }
 
-            // &:before {
-            //     position: absolute;
-            //     content: '';
-            //     width: 48px;
-            //     height: 48px;
-            //     left: 0;
-            //     top: 20px;
-            //     background-repeat: no-repeat;
-            //     background-position: center;
-            //     background-size: 20px;
-            //     background-color: #47d783;
-            //     border-radius: 50%;
-            // }
+            &:before {
+                position: absolute;
+                content: '';
+                width: 48px;
+                height: 48px;
+                left: 0;
+                top: 20px;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: 20px;
+                background-color: #47d783;
+                border-radius: 50%;
+            }
 
-            // &.project-progress-2:before {
-            //     background-color: #7800F5;
-            // }
+            &.project-progress-2:before {
+                background-color: #7800F5;
+            }
 
-            // &.no-1:before {
-            //     background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-1.png");
-            // }
+            &.no-1:before {
+                background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-1.png");
+            }
 
-            // &.no-2:before {
-            //     background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-2.png");
-            // }
+            &.no-2:before {
+                background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-2.png");
+            }
 
-            // &.no-3:before {
-            //     background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-3.png");
-            // }
+            &.no-3:before {
+                background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-3.png");
+            }
 
-            // &.no-4:before {
-            //     background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-4.png");
-            // }
+            &.no-4:before {
+                background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-4.png");
+            }
 
-            // &.no-5:before {
-            //     background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-5.png");
-            // }
+            &.no-5:before {
+                background-image: data-uri("image/png;base64", "../../assets/images/icon-progress-5.png");
+            }
 
             .progress-title {
                 font-size: 12px;
                 line-height: 22px;
-                color: #151526;
-                margin:10px 0;
-                display:flex;
-                justify-content: space-between;
+                color: #8D92A3;
 
                 span:first-child {
                     padding-right: 20px;
@@ -526,7 +543,7 @@
                 position: relative;
                 color: #22242A;
                 font-size: 15px;
-                line-height: 15px;
+                line-height: 22px;
                 font-weight: 900;
 
                 img {
@@ -541,6 +558,7 @@
             .progress-opera-record {
                 display: flex;
                 display: -webkit-flex;
+                margin-top: 11px;
 
                 & > div {
                     flex: 1;
@@ -744,4 +762,100 @@
             }
         }
     }
+
+    .progress-files {
+                margin-top: 5px;
+                list-style: none;
+                margin-left: 20px;
+
+                li {
+                    position: relative;
+                    width: 65%;
+
+                    &:not(:first-child) {
+                        margin-top: 14px;
+                    }
+
+                    & > div {
+                        position: relative;
+                        padding: 5px 10px 5px 34px;
+                        line-height: 17px;
+                        font-size: 12px;
+                        color: #7f7f7f;
+                        background-color: #f2f2f2;
+                        -webkit-border-radius: 5px;
+                        -moz-border-radius: 5px;
+                        border-radius: 5px;
+                        word-break: break-all;
+                        word-wrap: break-word;
+
+                        &:before {
+                            position: absolute;
+                            content: '';
+                            left: 0;
+                            top: 0;
+                            width: 34px;
+                            height: 100%;
+                            background: data-uri('image/png;base64', '../../assets/images/icon-attachment.png') no-repeat center;
+                            background-size: auto 15px;
+                        }
+                    }
+
+                    span {
+                        @size: 30px;
+                        position: absolute;
+                        right: -@size/2;
+                        top: -@size/2;
+                        width: @size;
+                        height: @size;
+                        background: data-uri('image/png;base64', '../../assets/images/icon-remove.png') no-repeat center;
+                        background-size: auto 20px;
+
+                        &:active {
+                            opacity: 0.7;
+                        }
+                    }
+                }
+            }
+
+
+            .fomr-item:before{
+              display: none;
+            }
+            .add_file{
+                position: absolute;
+                right: 20px;
+                width: 20px;
+              img{
+                width:100%;
+              }
+            }
+            .progress-rollback1 {
+                position: fixed;
+                left: 0;
+                right: 0;
+                line-height: 44px;
+                z-index: 100;
+                bottom: 0;
+                display: flex;
+                justify-content: space-between;
+                .left{
+                  line-height: 44px;
+                  text-align: center;
+                  color: #fff;
+                  background-color:#6478D3;
+                  border-radius: 22px;
+                  flex: 1;
+                  margin: 10px;
+                }
+                .right{
+                  line-height: 44px;
+                  text-align: center;
+                  color: #fff;
+                  background-color:#f43530;
+                  border-radius: 22px;
+                  flex: 1;
+                  margin: 10px;
+                }
+            }
 </style>

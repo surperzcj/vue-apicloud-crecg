@@ -325,5 +325,17 @@ export const getSafeTask = async form => getData(`/api/project/task`, form)
 export const putSafeTask = async form => putData(`/api/project/task`, form)
 // 删除任务
 export const delSafeTask = async Id => deleteData(`/api/project/task/${Id}`)
-// 上传文件
-export const uploadF = async form => postData(`/api/upload`, form)
+// 安全协议
+export const checkProtocol = async form => getData(`/api/project/protocol/check`, form)
+// 勾选安全协议
+export const gouProtocol = async form => postData(`/api/project/protocol/check`, form)
+// 提交材料（创建）
+export const postTaskDetail = async form => postData(`/api/project/task/detail`, form)
+// 重新提交材料（编辑）
+export const putTaskDetail = async form => putData(`/api/project/task/detail`, form)
+// 获取材料
+export const getTaskDetail = async form => getData(`/api/project/task/detail`, form)
+// 删除材料
+export const delTaskDetail = async Id => deleteData(`/api/project/task/detail/${Id}`)
+// 审核材料
+export const TaskAudit = async form => postData(`/api/project/task/detail/audit`, form)

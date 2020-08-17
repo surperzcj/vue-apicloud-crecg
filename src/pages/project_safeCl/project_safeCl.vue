@@ -3,23 +3,29 @@
         <div class="project-add-form">
             <div class="form-item">
                 <label>提交人</label>
-                <input type="text" placeholder="请输入提交人名字" v-model="form.pname"/>
+                <input type="text" placeholder="请输入提交人名字" readonly v-model="createdJuname"/>
             </div>
             <div class="form-item">
                 <label><span style='color:red;'>*</span>内容</label>
                 <input type="text" placeholder="请输入材料内容" v-model="form.content"/>
             </div>
-            <div class="form-item">
+            <div class="form-item fomr-item">
                 <label>添加附件</label>
-                <span @click="uploadAttachment(progress)">+</span>
+                <span class="add_file" @click="uploadAttachment(progress)">
+                  <img src="../../assets/images/icon-add.png" alt="">
+                </span>
             </div>
-            <ul class="progress-files" v-if="progress.files && progress.files.length > 0">
-                <li v-for="(file,fileIndex) in progress.files" :key="fileIndex">
-                    <div v-text="file.fname" @click="viewAttachment(file)"></div>
-                    <span class="remove" v-if="progress.status === 2"
-                          @click="removeFile(progress.files,fileIndex)"></span>
+            <ul class="progress-files" v-if="progress && progress.length > 0">
+                <li v-for="(file,fileIndex) in progress" :key="fileIndex">
+                    <div v-text="file.originName" @click="viewAttachment(file)"></div>
+                    <span class="remove"
+                          @click="removeFile(progress,fileIndex)"></span>
                 </li>
             </ul>
+        </div>
+        <div class="progress-rollback1">
+          <div class="left" @click="postTask">确认提交</div>
+          <div class="right" @click="closeWindow()">取消</div>
         </div>
         <!-- <ul class="project-progress" :style="`padding-bottom: ${footerHeight}px`">
             <li :class="`project-progress-${progress.status} no-${index+1}`" v-for="(progress, index) in progresses">
@@ -76,6 +82,7 @@
   import ProjectHeader from '../../components/ProjectHeader.vue'
   import {
     getPageParams,
+    closeWindow,
     openDocReader,
     openFileBrowser,
     openPhotoViewer,
@@ -91,7 +98,7 @@
     getProjectProgresses,
     projectNextProgress, projectRollbackProgress, removeProgressRemark,
     removeProjectProgressFile,
-    uploadF,
+    postTaskDetail,
     uploadProjectProgressFile
   } from '../../utils/DataUtils'
   import {formatDate} from '../../utils/CommonUtils'
@@ -103,10 +110,11 @@
     data () {
       return {
         form:{
-          pname:'',
-          pnamcontent:'',
+          ptid:'',
+          content:'',
           attachmentListStr:'',
         },
+        createdJuname:'',
         project: {},
         progresses: [],
         selectList: [],
@@ -123,6 +131,8 @@
     async created () {
       let { project, type } = await getPageParams()
       this.project = project
+      this.form.ptid = project.ptid
+      this.createdJuname = project.createdJuname
       console.log(this.project,'project')
       this.type = type
       this.getData()
@@ -180,6 +190,17 @@
       }
     },
     methods: {
+      closeWindow,
+      async postTask(){
+        this.form.attachmentListStr = JSON.stringify(this.progress)
+        let { c, m } = await postTaskDetail(this.form)
+        if (c === 0) {
+          toast(m)
+          setTimeout(() => {
+            closeWindow()
+          }, 300)
+        }
+      },
       formatDate (ts) {
         return formatDate(ts, 'yyyy-MM-dd')
       },
@@ -261,27 +282,28 @@
       },
       async uploadFile (progress, url, name) {
         console.log(url, name, progress)
-        let r = await uploadF(url)
+        let r = await uploadFile(url)
         if (r.c !== 0) {
           return
         }
+        console.log(r)
+        
+        // let { c, d } = await uploadFile(this.project.jpid, progress.id, r.d.key, name)
+        // if (c !== 0) {
+        //   return
+        // }
 
-        let { c, d } = await uploadFile(this.project.jpid, progress.id, r.d.key, name)
-        if (c !== 0) {
-          return
-        }
-
-        progress.files.push(d)
+        this.progress.push(r.d)
       },
       async removeFile (files, index) {
         let file = files[index]
-        let { c } = await removeProjectProgressFile(file.jpid, file.progid, file.id)
-        if (c === 0) {
+        // let { c } = await removeProjectProgressFile(file.jpid, file.progid, file.id)
+        // if (c === 0) {
           files.splice(index, 1)
-        }
+        // }
       },
       viewAttachment (file) {
-        if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.fname)) {
+        if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.originName)) {
           openPhotoViewer(file.url)
         } else {
           openDocReader(file.url)
@@ -337,7 +359,9 @@
 
 <style lang="less">
     @import "../../assets/style";
-
+    .project-add-form{
+          background-color: #fff!important;
+    }
     .project-plan-time {
         padding: 0 26px;
         display: flex;
@@ -692,4 +716,100 @@
             }
         }
     }
+
+    .progress-files {
+                margin-top: 5px;
+                list-style: none;
+                margin-left: 20px;
+
+                li {
+                    position: relative;
+                    width: 65%;
+
+                    &:not(:first-child) {
+                        margin-top: 14px;
+                    }
+
+                    & > div {
+                        position: relative;
+                        padding: 5px 10px 5px 34px;
+                        line-height: 17px;
+                        font-size: 12px;
+                        color: #7f7f7f;
+                        background-color: #f2f2f2;
+                        -webkit-border-radius: 5px;
+                        -moz-border-radius: 5px;
+                        border-radius: 5px;
+                        word-break: break-all;
+                        word-wrap: break-word;
+
+                        &:before {
+                            position: absolute;
+                            content: '';
+                            left: 0;
+                            top: 0;
+                            width: 34px;
+                            height: 100%;
+                            background: data-uri('image/png;base64', '../../assets/images/icon-attachment.png') no-repeat center;
+                            background-size: auto 15px;
+                        }
+                    }
+
+                    span {
+                        @size: 30px;
+                        position: absolute;
+                        right: -@size/2;
+                        top: -@size/2;
+                        width: @size;
+                        height: @size;
+                        background: data-uri('image/png;base64', '../../assets/images/icon-remove.png') no-repeat center;
+                        background-size: auto 20px;
+
+                        &:active {
+                            opacity: 0.7;
+                        }
+                    }
+                }
+            }
+
+
+            .fomr-item:before{
+              display: none;
+            }
+            .add_file{
+                position: absolute;
+                right: 20px;
+                width: 20px;
+              img{
+                width:100%;
+              }
+            }
+            .progress-rollback1 {
+                position: fixed;
+                left: 0;
+                right: 0;
+                line-height: 44px;
+                z-index: 100;
+                bottom: 0;
+                display: flex;
+                justify-content: space-between;
+                .left{
+                  line-height: 44px;
+                  text-align: center;
+                  color: #fff;
+                  background-color:#6478D3;
+                  border-radius: 22px;
+                  flex: 1;
+                  margin: 10px;
+                }
+                .right{
+                  line-height: 44px;
+                  text-align: center;
+                  color: #fff;
+                  background-color:#999;
+                  border-radius: 22px;
+                  flex: 1;
+                  margin: 10px;
+                }
+            }
 </style>
