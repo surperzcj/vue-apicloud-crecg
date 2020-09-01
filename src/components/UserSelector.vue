@@ -73,6 +73,8 @@
     },
     computed: {
       users () {
+        console.log('this.list')
+        console.log(this.list)
         const w = this.word
         if (!w) {
           return this.list

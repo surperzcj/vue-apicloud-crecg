@@ -9,18 +9,19 @@
                       {{progress.taskName}}
                   </div>
                 <div class="progress-title">
-                    <span v-text="'指定时间：'+formatDate(progress.created)"></span>
+                    <span v-text="'指定时间：'+formatDate(progress.taskTime)"></span>
                     <span>创建人：{{progress.createdJuname}}</span>
                 </div>
                 
                 <div class="progress-opera-record">
-                    <div>参与人：<span v-text="progress.juname"></span></div>
+                    <div>参与人：<span v-text="progress.taskMembersNameStr"></span></div>
                 </div>
             </li>
 
             <li v-if="progresses.length===0" style="text-align: center;line-height: 88px;">
                 暂无数据~
             </li>
+            <div style="margin-bottom: 90px;"></div>
 
         </ul>
         <create-record-form :visible.sync="showRecordForm"
@@ -138,11 +139,11 @@
     methods: {
       goTaskDetail(item){
         console.log(item,'任务详情')
-        let params = { project: item }
+        let params = { project: item, projuct: this.project}
         openWindow('project_safeDetail.html', '任务详情', params)
       },
       formatDate (ts) {
-        return formatDate(ts, 'yyyy-MM-dd')
+        return formatDate(ts, 'yyyy-MM-dd hh:mm:ss')
       },
       plantime () {
         openWindow('project_progress_plantime.html', '进度时间安排', {
@@ -351,6 +352,7 @@
         margin-right: 16px;
         margin-top: 7px;
         list-style: none;
+        
 
         & > li {
             position: relative;
@@ -359,6 +361,10 @@
             min-height: 88px;
             background: #efefef;
             margin-bottom:16px;
+            border-radius: 6px;
+            background:#fff;
+            box-shadow: 0 5px 20px 0 rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
 
             &:after {
                 position: absolute;
@@ -412,7 +418,7 @@
             .progress-title {
                 font-size: 12px;
                 line-height: 22px;
-                color: #151526;
+                color: #666;
                 margin:10px 0;
                 display:flex;
                 justify-content: space-between;
@@ -428,6 +434,9 @@
                 font-size: 15px;
                 line-height: 15px;
                 font-weight: 900;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
 
                 img {
                     display: none;
@@ -441,12 +450,13 @@
             .progress-opera-record {
                 display: flex;
                 display: -webkit-flex;
+                color:#666;
 
                 & > div {
                     flex: 1;
                     font-size: 12px;
-                    line-height: 12px;
-                    color: #151526;
+                    line-height: 16px;
+                    color:#666;
                 }
             }
 

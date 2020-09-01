@@ -287,10 +287,11 @@ export const downloadFile = async (url, savePath) => {
       cache: true,
       allowResume: true
     }, function (ret, err) {
-      if (ret.state === 1) {
+      console.log(ret)
+      // if (ret.state === 1) {
         //下载成功
-        resolve(true)
-      }
+        resolve(ret)
+      // }
     })
   })
 }
@@ -311,6 +312,9 @@ export const uploadFile = async file => {
         }
       }
     }, (ret, err) => {
+        console.log('err')
+        console.log(err)
+        console.log(ret)
       if (ret) {
         resolve(ret)
       } else {

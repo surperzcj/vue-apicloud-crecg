@@ -19,7 +19,7 @@
                 <li v-for="(file,fileIndex) in progress" :key="fileIndex">
                     <div v-text="file.originName" @click="viewAttachment(file)"></div>
                     <span class="remove"
-                          @click="removeFile(progress,fileIndex)"></span>
+                          @click="removeFile(progress,fileIndex)">删除</span>
                 </li>
             </ul>
         </div>
@@ -70,6 +70,18 @@
                 </div>
             </li>
         </ul> -->
+        <div class="upload_bg" v-show="showUpload">
+          <div class="box">
+            <div class="loading">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            正在上传
+          </div>
+        </div>
         <create-record-form :visible.sync="showRecordForm"
                             :remark="remark?remark.remark:null"
                             @confirmed="confirmRemark"/>
@@ -109,6 +121,7 @@
     components: { ProjectHeader, MultiSelector, CreateRecordForm },
     data () {
       return {
+        showUpload:false,
         form:{
           ptid:'',
           content:'',
@@ -132,7 +145,9 @@
       let { project, type } = await getPageParams()
       this.project = project
       this.form.ptid = project.ptid
-      this.createdJuname = project.createdJuname
+      let userInfo = JSON.parse(localStorage.getItem('user-info'))
+      console.log(userInfo,'userInfo')
+      this.createdJuname = userInfo.name
       console.log(this.project,'project')
       this.type = type
       this.getData()
@@ -192,10 +207,14 @@
     methods: {
       closeWindow,
       async postTask(){
+        if(this.form.content == ''){
+          toast('请输入内容')
+          return
+        }
         this.form.attachmentListStr = JSON.stringify(this.progress)
         let { c, m } = await postTaskDetail(this.form)
+        toast(m)
         if (c === 0) {
-          toast(m)
           setTimeout(() => {
             closeWindow()
           }, 300)
@@ -277,16 +296,41 @@
           return
         }
         console.log(r)
+        var filename = r.name
+        var index1=filename.lastIndexOf(".")+1;
+        var index2=filename.length;
+        var type=filename.substring(index1,index2);
+        console.log(type,'type')
+        let suffix = {
+          jpg:true,
+          gif:true,
+          png:true,
+          jpeg:true,
+          pdf:true,
+          docx:true,
+          doc:true,
+          xlsx:true,
+          xls:true,
+          ppt:true
+        }
+        if(!suffix[type]){
+          toast('不支持该文件类型')
+          return
+        }
+        
 
         this.uploadFile(progress, r.url, r.name)
       },
       async uploadFile (progress, url, name) {
-        console.log(url, name, progress)
+        this.showUpload = true
         let r = await uploadFile(url)
+        console.log(r)
         if (r.c !== 0) {
+          toast(r.m)
           return
         }
-        console.log(r)
+        this.showUpload = false
+        
         
         // let { c, d } = await uploadFile(this.project.jpid, progress.id, r.d.key, name)
         // if (c !== 0) {
@@ -303,6 +347,7 @@
         // }
       },
       viewAttachment (file) {
+        console.log(file)
         if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.originName)) {
           openPhotoViewer(file.url)
         } else {
@@ -632,7 +677,7 @@
                             top: 0;
                             width: 34px;
                             height: 100%;
-                            background: data-uri('image/png;base64', '../../assets/images/icon-attachment.png') no-repeat center;
+                            background: data-uri('image/png;base64', '../../assets/images/huan.png') no-repeat center;
                             background-size: auto 15px;
                         }
                     }
@@ -721,10 +766,12 @@
                 margin-top: 5px;
                 list-style: none;
                 margin-left: 20px;
+                margin-right: 20px;
+                
 
                 li {
                     position: relative;
-                    width: 65%;
+                    // padding:13px 8px;
 
                     &:not(:first-child) {
                         margin-top: 14px;
@@ -732,10 +779,10 @@
 
                     & > div {
                         position: relative;
-                        padding: 5px 10px 5px 34px;
+                        padding: 10px 45px 10px 34px;
                         line-height: 17px;
                         font-size: 12px;
-                        color: #7f7f7f;
+                        color: #6877CD;
                         background-color: #f2f2f2;
                         -webkit-border-radius: 5px;
                         -moz-border-radius: 5px;
@@ -750,24 +797,17 @@
                             top: 0;
                             width: 34px;
                             height: 100%;
-                            background: data-uri('image/png;base64', '../../assets/images/icon-attachment.png') no-repeat center;
+                            background: data-uri('image/png;base64', '../../assets/images/huan.png') no-repeat center;
                             background-size: auto 15px;
                         }
                     }
 
                     span {
-                        @size: 30px;
-                        position: absolute;
-                        right: -@size/2;
-                        top: -@size/2;
-                        width: @size;
-                        height: @size;
-                        background: data-uri('image/png;base64', '../../assets/images/icon-remove.png') no-repeat center;
-                        background-size: auto 20px;
-
-                        &:active {
-                            opacity: 0.7;
-                        }
+                      position: absolute;
+                      top: 6px;
+                      font-size: 15px;
+                      right: 18px;
+                      color:#CA0000;
                     }
                 }
             }
@@ -812,4 +852,63 @@
                   margin: 10px;
                 }
             }
+
+.upload_bg{
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    .loading{
+        margin: 0 auto;
+        width: 60px;
+        height: 65px;
+        margin-top: 30px;
+        }
+        .loading span{
+            display: inline-block;
+            width: 8px;
+            height: 100%;
+            border-radius: 4px;
+            background: lightgreen;
+            -webkit-animation: load 1s ease infinite;
+        }
+        @-webkit-keyframes load{
+            0%,100%{
+                height: 40px;
+                background: lightgreen;
+            }
+            50%{
+                height: 70px;
+                margin: -15px 0;
+                background: lightblue;
+            }
+        }
+        .loading span:nth-child(2){
+            -webkit-animation-delay:0.2s;
+        }
+        .loading span:nth-child(3){
+            -webkit-animation-delay:0.4s;
+        }
+        .loading span:nth-child(4){
+            -webkit-animation-delay:0.6s;
+        }
+        .loading span:nth-child(5){
+            -webkit-animation-delay:0.8s;
+        }
+  .box{
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%);
+    background: #fff;
+    width: 140px;
+    border-radius: 5px;
+    height: 120px;
+    text-align: center;
+    font-size: 12px;
+  }
+}
 </style>

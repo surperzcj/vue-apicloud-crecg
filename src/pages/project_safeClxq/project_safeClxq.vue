@@ -1,61 +1,86 @@
 <template>
     <div id="app">
-        <div class="project-add-form">
+        <div class="">
+            <div class="form-item">
+                <label>内容</label>
+                <input type="text" placeholder="请输入材料内容" v-if="isSelfTack" readonly v-model="form.content"/>
+                <input type="text" placeholder="请输入材料内容" v-else v-model="form.content"/>
+            </div>
             <div class="form-item">
                 <label>提交人</label>
                 <input type="text" placeholder="请输入提交人名字" readonly v-model="juname"/>
             </div>
             <div class="form-item">
-                <label><span style='color:red;'>*</span>内容</label>
-                <input type="text" placeholder="请输入材料内容" v-if="isSelfTack" readonly v-model="form.content"/>
-                <input type="text" placeholder="请输入材料内容" v-else v-model="form.content"/>
+                <label>提交时间</label>
+                <span>{{formatDate(taskDetail.created)}}</span>
             </div>
-            <div class="form-item fomr-item">
-                <label>添加附件</label>
-                <span class="add_file" @click="uploadAttachment(progress)">
+            <div class="form-item ">
+                <label>附件</label>
+                <span class="add_file" v-if="!isSelfTack" @click="uploadAttachment(progress)">
                   <img src="../../assets/images/icon-add.png" alt="">
                 </span>
             </div>
             <ul class="progress-files" v-if="progress && progress.length > 0">
                 <li v-for="(file,fileIndex) in progress" :key="fileIndex">
-                    <div v-text="file.originName" @click="viewAttachment(file)"></div>
+                    <div v-text="file.originName"></div>
+                    <p class="sc" v-if="!isSelfTack && taskDetail.status === 20" @click="delFile(file)">删除</p>
+                    <p class="yl" v-if="isSelfTack || taskDetail.status !== 20" @click="viewAttachment(file)">预览</p>
+                    <p class="xz" v-if="isSelfTack || taskDetail.status !== 20" @click="downloadFile(file)">下载</p>
                     <!-- <span class="remove"
                           @click="removeFile(progress,fileIndex)"></span> -->
                 </li>
             </ul>
-            <div class="form-item"></div>
-            <div class="form-item fomr-item">
+
+            <div class="form-item" v-if="isSelfTack && taskDetail.status == 10">
+                <label>意见<span style='color:red;'>*</span></label>
+            </div>
+            <div class="form-item" v-if="isSelfTack && taskDetail.status == 10">
+              <textarea type="text" rows="5" placeholder="请输入意见内容" v-if="isSelfTack" v-model="taskContent"/>
+            </div>
+            <div class="form-item">
                 <label>审核历史</label>
             </div>
             <div class="sh_item" v-for="(item,index) in taskDetail.auditList" :key="index">
-              <div class="stauts" v-if="item.status === 10">待审核</div>
-              <div class="stauts" v-if="item.status === 20">已拒绝</div>
-              <div class="stauts" v-if="item.status === 30">已通过</div>
+              <div class="stauts sh" v-if="item.status === 10">待审核</div>
+              <div class="stauts jj" v-if="item.status === 20">已拒绝</div>
+              <div class="stauts tg" v-if="item.status === 30">已通过</div>
 
               <div class="content">
-                <div class="text">{{item.content}}</div>
+                <div class="text">{{item.content || '--'}}</div>
                 <div class="bottom">
                   <div class="name">{{item.juname}}</div>
                   <div class="time">{{formatDate(item.created)}}</div>
                 </div>
               </div>
             </div>
+            <div style="height:70px;"></div>
         </div>
-
-
-
-
         
-        <div class="progress-rollback1" v-if="isSelfTack">
+        <div class="progress-rollback1" v-if="isSelfTack && taskDetail.status == 10">
           <div class="left" @click="possTask(30)">通过</div>
           <div class="right" @click="possTask(20)">拒绝</div>
         </div>
-        <div class="progress-rollback1" v-else>
-          <div class="left" @click="postTask">确认提交</div>
+        <!-- <div class="progress-rollback1" v-if="isSelfTack && taskDetail.status != 10">
+          <div class="left bg_999">通过</div>
+          <div class="right bg_999">拒绝</div>
+        </div> -->
+        <div class="progress-rollback1" v-if="!isSelfTack && taskDetail.status === 20">
+          <div class="left" @click="postTask">重新提交</div>
           <div class="right" @click="delTask">删除</div>
         </div>
 
-        
+        <div class="upload_bg" v-show="showUpload">
+          <div class="box">
+            <div class="loading">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            正在上传
+          </div>
+        </div>
 
         <create-record-form :visible.sync="showRecordForm"
                             :remark="remark?remark.remark:null"
@@ -77,6 +102,7 @@
     toast,
     confirm,
     uploadFile,
+    downloadFile,
     addEventListener,
     openWindow
   } from '../../utils/ApiCloudUtils'
@@ -88,7 +114,10 @@
     putTaskDetail,
     getTaskDetail,
     delTaskDetail,
+    delAttachment,
+    attachment,
     TaskAudit,
+    upFile,
     uploadProjectProgressFile
   } from '../../utils/DataUtils'
   import {formatDate} from '../../utils/CommonUtils'
@@ -99,11 +128,15 @@
     components: { ProjectHeader, MultiSelector, CreateRecordForm },
     data () {
       return {
+        showUpload:false,
+        delFileList:[],
+        uploadFileList:[],
         isSelfTack:false,  // 自己创建的任务
         form:{
           ptdid:'',
           content:'',
         },
+        taskContent:'',
         taskDetail:{},
         juname:'',
         project: {},
@@ -128,13 +161,13 @@
       this.getData()
 
 
-      this.paddingBottom = window.api.safeArea.bottom
-      addEventListener('layout-windowViewAppear', ({ winName }) => {
-        if (winName !== window.api.winName) {
-          return
-        }
-        this.getData()
-      })
+      // this.paddingBottom = window.api.safeArea.bottom
+      // addEventListener('layout-windowViewAppear', ({ winName }) => {
+      //   if (winName !== window.api.winName) {
+      //     return
+      //   }
+      //   this.getData()
+      // })
     },
     computed: {
       isContract () {
@@ -192,6 +225,24 @@
       },
       async postTask(){
         let { c, m } = await putTaskDetail(this.form)
+        for(let i=0;i<this.delFileList.length;i++){
+          let item = this.delFileList[i]
+          let del = await delAttachment(item)
+          console.log('删除好了')
+          if(del.c !== 0){
+            toast(del.m)
+          }
+        }
+        for(let j=0;j<this.uploadFileList.length;j++){
+          let item = this.uploadFileList[j]
+          item.ptdid = this.taskDetail.ptdid
+          let del = await attachment(item)
+          console.log('新加好了')
+          if(del.c !== 0){
+            toast(del.m)
+          }
+        }
+
         if (c === 0) {
           toast(m)
           setTimeout(() => {
@@ -200,10 +251,14 @@
         }
       },
       async possTask(status){
+        if(this.taskContent ===''){
+          toast("请输入审核意见")
+          return
+        }
         let params = {
           ptdid:this.form.ptdid,
           status:status,
-          content:''
+          content:this.taskContent
         }
         let { c, m } = await TaskAudit(params)
         if (c === 0) {
@@ -236,7 +291,8 @@
         d.attachmentList.map(item=>{
           let box = {
             originName:item.originName,
-            url:item.fullUrl
+            url:item.fullUrl,
+            ptaid:item.ptaid,
           }
           this.progress.push(box)
         })
@@ -289,16 +345,40 @@
         if (r === null) {
           return
         }
+        var filename = r.name
+        var index1=filename.lastIndexOf(".")+1;
+        var index2=filename.length;
+        var type=filename.substring(index1,index2);
+        console.log(type,'type')
+        let suffix = {
+          jpg:true,
+          gif:true,
+          png:true,
+          jpeg:true,
+          pdf:true,
+          docx:true,
+          doc:true,
+          xlsx:true,
+          xls:true,
+          ppt:true
+        }
+        if(!suffix[type]){
+          toast('不支持该文件类型')
+          return
+        }
+        
         console.log(r)
 
         this.uploadFile(progress, r.url, r.name)
       },
       async uploadFile (progress, url, name) {
-        console.log(url, name, progress)
+        this.showUpload = true
         let r = await uploadFile(url)
         if (r.c !== 0) {
+          toast(r.m)
           return
         }
+        this.showUpload = false
         console.log(r)
         
         // let { c, d } = await uploadFile(this.project.jpid, progress.id, r.d.key, name)
@@ -307,6 +387,30 @@
         // }
 
         this.progress.push(r.d)
+        this.uploadFileList.push(r.d)
+      },
+      async delFile (file) {
+        this.delFileList.push(file.ptaid)
+        this.progress.map((item,index)=>{
+          if(item.ptaid === file.ptaid){
+            this.progress.splice(index,1)
+          }
+        })
+        // console.log(file)
+        // return
+        // let r = await delAttachment(file.url, saveUrl)
+        // if(r){
+        //   toast('下载成功')
+        // }
+      },
+      async downloadFile (file) {
+        console.log(file)
+        toast('正在下载...')
+        let saveUrl = 'fs://' +file.originName
+        let r = await downloadFile(file.url, saveUrl)
+        if(r.state === 1){
+          toast('文件已保存至'+r.savePath)
+        }
       },
       async removeFile (files, index) {
         let file = files[index]
@@ -316,6 +420,7 @@
         // }
       },
       viewAttachment (file) {
+        console.log(file,'file')
         if (/\.(gif|jpg|jpeg|bmp|png)$/.test(file.originName)) {
           openPhotoViewer(file.url)
         } else {
@@ -386,6 +491,18 @@
         font-size: 12px;
         text-align: center;
         margin-right: 10px;
+      }
+      .sh{
+        border:1px solid #00A6CE;
+        color:#00A6CE;
+      }
+      .jj{
+        border:1px solid #CA0000;
+        color:#CA0000;
+      }
+      .tg{
+        border:1px solid #6877CD;
+        color:#6877CD;
       }
       .content{
         flex: 1;
@@ -649,6 +766,7 @@
             .progress-files {
                 margin-top: 5px;
                 list-style: none;
+                
 
                 li {
                     position: relative;
@@ -767,10 +885,11 @@
                 margin-top: 5px;
                 list-style: none;
                 margin-left: 20px;
+                padding-bottom: 20px;
 
                 li {
                     position: relative;
-                    width: 65%;
+                    padding-right: 35%;
 
                     &:not(:first-child) {
                         margin-top: 14px;
@@ -781,8 +900,7 @@
                         padding: 5px 10px 5px 34px;
                         line-height: 17px;
                         font-size: 12px;
-                        color: #7f7f7f;
-                        background-color: #f2f2f2;
+                        color: #6877CD;
                         -webkit-border-radius: 5px;
                         -moz-border-radius: 5px;
                         border-radius: 5px;
@@ -796,7 +914,7 @@
                             top: 0;
                             width: 34px;
                             height: 100%;
-                            background: data-uri('image/png;base64', '../../assets/images/icon-attachment.png') no-repeat center;
+                            background: data-uri('image/png;base64', '../../assets/images/huan.png') no-repeat center;
                             background-size: auto 15px;
                         }
                     }
@@ -814,6 +932,27 @@
                         &:active {
                             opacity: 0.7;
                         }
+                    }
+                    .sc{
+                          position: absolute;
+                          top: 3px;
+                          right: 20px;
+                          font-size: 12px;
+                          color: #CA0000;
+                    }
+                    .yl{
+                          position: absolute;
+                          top: 3px;
+                          right: 20px;
+                          font-size: 12px;
+                          color: #00A6CE;
+                    }
+                    .xz{
+                      position: absolute;
+                          top: 3px;
+                          right: 80px;
+                          font-size: 12px;
+                          color: #6877CD;
                     }
                 }
             }
@@ -858,4 +997,89 @@
                   margin: 10px;
                 }
             }
+            .bg_999{
+              background-color:#999!important;
+            }
+
+.form-item{
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    line-height: 41px;
+  label{
+    font-size: 16px;
+    color: #4F4F4F;
+  }
+  input{
+    font-size: 16px;
+    border: none;
+    text-align: right;
+  }
+  textarea{
+    background: #F3F3F4;
+    border: none;
+    width: 100%;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 16px;
+  }
+}
+.upload_bg{
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    .loading{
+        margin: 0 auto;
+        width: 60px;
+        height: 65px;
+        margin-top: 30px;
+        }
+        .loading span{
+            display: inline-block;
+            width: 8px;
+            height: 100%;
+            border-radius: 4px;
+            background: lightgreen;
+            -webkit-animation: load 1s ease infinite;
+        }
+        @-webkit-keyframes load{
+            0%,100%{
+                height: 40px;
+                background: lightgreen;
+            }
+            50%{
+                height: 70px;
+                margin: -15px 0;
+                background: lightblue;
+            }
+        }
+        .loading span:nth-child(2){
+            -webkit-animation-delay:0.2s;
+        }
+        .loading span:nth-child(3){
+            -webkit-animation-delay:0.4s;
+        }
+        .loading span:nth-child(4){
+            -webkit-animation-delay:0.6s;
+        }
+        .loading span:nth-child(5){
+            -webkit-animation-delay:0.8s;
+        }
+  .box{
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%);
+    background: #fff;
+    width: 140px;
+    border-radius: 5px;
+    height: 120px;
+    text-align: center;
+    font-size: 12px;
+  }
+}
 </style>

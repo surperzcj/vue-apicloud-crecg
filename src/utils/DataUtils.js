@@ -339,3 +339,9 @@ export const getTaskDetail = async form => getData(`/api/project/task/detail`, f
 export const delTaskDetail = async Id => deleteData(`/api/project/task/detail/${Id}`)
 // 审核材料
 export const TaskAudit = async form => postData(`/api/project/task/detail/audit`, form)
+// 删除附件
+export const delAttachment = async Id => deleteData(`/api/project/task/attachment/${Id}`)
+// 增加附件（材料详情重新提交用）
+export const attachment = async form => postData(`/api/project/task/attachment`, form)
+// 上传文件
+export const upFile = async form => postData(`/api/upload`, form)

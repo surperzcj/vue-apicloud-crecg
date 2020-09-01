@@ -101,17 +101,6 @@
             <div class="title">更多操作</div>
         </div>
         <div class="project-container" style="background: #fff;">
-            <div class="project-links ">
-                <div class="project-link">
-                    <div class="btn-animation-ripple" @click="toProjectDetailPage(xmaqPage)">
-                        <div class="btn-animation-ripple-content"></div>
-                        {{parsePageButtonName(xmaqPage)}}
-                    </div>
-                </div>
-                <div class="project-link weui-flex__item">
-                    &nbsp;
-                </div>
-            </div>
             <div class="project-links " v-for="pages in pageGroups">
                 <div class="project-link" v-for="page in pages">
                     <div class="btn-animation-ripple" @click="toProjectDetailPage(page)">
@@ -169,16 +158,19 @@
             </div>
         </div>
 
-        <div class="safeBg" v-if="agreementData.isCheck">
+        <div class="safeBg" v-if="!agreementData.isCheck">
           <div class="agreement">
-            <div v-html="agreementData.content"></div>
-            <div class="consent" @click="tyxy = !tyxy">
+            <div class="content">
+              <div class="title">安全协议</div>
+              <p v-html="agreementData.content"></p>
+              <div class="consent" @click="tyxy = !tyxy">
               <span class="gou">
                 <img v-show="tyxy" src="../../assets/images/icon-right.png">
               </span>我已了解安全协议细则</div>
+            </div>
+            
             <div class="button">
-              <div class="fh btn" @click="agreementData.isCheck = false">返回</div>
-              <div class="ty btn" @click="checkProtocol(false)" :class="tyxy? '':'huiBg'">已同意</div>
+              <div class="ty btn" @click="checkProtocol(false)" :class="tyxy? '':'huiBg'">我已阅读</div>
             </div>
           </div>
           
@@ -214,7 +206,7 @@
       return {
         tyxy:false,
         agreementData:{
-          isCheck:false
+          isCheck:true
         },
         xmaqPage:{
           apiUrl: null,
@@ -315,6 +307,7 @@
       }
     },
     methods: {
+      closeWindow,
       formatDate,
       gouAgreement(){
         this.tyxy = true
@@ -347,7 +340,7 @@
           if (c === 0) {
             toast(m)
             setTimeout(() => {
-              this.agreementData.isCheck = false
+              this.agreementData.isCheck = true
             }, 300)
           }
         }
@@ -403,7 +396,7 @@
             return openWindow('project_spend.html', jrename, params)
           case 62:
             return openWindow('project_records.html', jrename, params)
-          case 93:
+          case 92:
             return openWindow('project_safe.html', jrename, params)
         }
       },
@@ -487,28 +480,49 @@
       background:rgba(0,0,0,0.5);
       z-index: 100;
       .agreement{
-        position: absolute;
-        top:100px;
-        left:50px;
-        right:50px;
-        bottom:200px;
+        position: fixed;
+        top:30px;
+        left:30px;
+        right:30px;
+        bottom:30px;
         background:#fff;
+        padding: 20px 10px;
+        .title{
+          text-align: center;
+          font-size: 20px;
+          font-weight: 600;
+          margin-bottom:15px;
+        }
+        p{
+          color: #4F4F4F;
+        }
+      }
+      .content{
+        width: 100%;
+        height: 100%;
+        overflow: auto;
       }
       .consent{
-          position: absolute;
-          bottom: 5px;
-          left: 10px;
+          // position: absolute;
+          // bottom: 67px;
+          // left: 0;
           display: flex;
           align-items: center;
+          background: #fff;
+          right: 0;
+          padding: 5px 10px;
+          font-size: 13px;
+          color: #6877CD;
+          margin-top:15px;
         .gou{
-          display:inline-block;
-          width:20px;
-          height:20px;
-          margin-right:10px;
-          border:1px solid #cdcdd7;
+          width: 15px;
+          height: 15px;
+          margin-right: 10px;
+          border: 1px solid #cdcdd7;
           text-align: center;
           display: flex;
           align-items: center;
+          color: #6877CD;
           img{
             width: 80%;
             flex: 1;
@@ -517,15 +531,17 @@
       }
       .button{
             position: absolute;
-            bottom: -50px;
-            left: 0;
-            right: 0;
+            bottom: 0px;
+            left: 0px;
+            right: 0px;
             display: flex;
             justify-content: space-between;
             text-align: center;
+            padding: 10px;
+            background: #fff;
             .btn{
-              width: 100px;
-              line-height: 40px;
+              width: 100%;
+              line-height: 48px;
               border-radius: 5px;
             }
         .fh{
@@ -534,14 +550,14 @@
         }
         .ty{
           right: 0px;
-          background: #3F67E9;
+          background: #6877CD;
           color: #fff;
         }
       }
     }
 
     .huiBg{
-      background:#999!important;
+      opacity:0.3;
     }
 
     body {

@@ -23,7 +23,6 @@
             <li v-for="(word,index) in ownerUnitHistoryWords" v-text="word" :key="index"
                 @click="form.ownerUnit = word; linkLeaveOwnerUnit()"></li>
         </ul>
-
         <div class="project-add-form">
             <div class="form-item">
                 <label><span style='color:red;'>*</span>任务名称</label>
@@ -153,9 +152,7 @@
           get userIncharges () {
             return this.inchargeUsers
           },
-          get userDevelops () {
-            return this.developUsers
-          },
+          userDevelops:[],
           sourceTypes: [],
           industries: [],
           areas: [],
@@ -241,9 +238,29 @@
       let { project,edit } = await getPageParams()
       this.project = project
       this.isEdit = edit
-      // console.log(edit,'isEditProject')
+      console.log(edit,'isEditProject')
+      console.log('this.project')
+      console.log(this.project)
+      this.project.members.map(item=>{
+        item.left = item.juname
+        item.text = item.mobile
+        item.id = item.juid
+      })
+      this.settings.userDevelops = this.project.members
+      console.log(this.settings)
+      if(this.isEdit){
+        this.form.pname = this.project.taskName
+        this.form.actDateLimitText = this.formatDate(this.project.taskTime*1000, 'yyyy-MM-dd')
+        this.form.userDevelopName = this.project.taskMembersNameStr.split()
+        this.form.userDevelop = []
+        this.project.taskMemberList.map(item=>{
+          console.log(item)
+          this.form.userDevelop.push(item.juid)
+        })
+        this.form.userDevelop = this.form.userDevelop.toString()
+      }
 
-      this.getSettings()
+      // this.getSettings()
       
 
 
@@ -352,24 +369,16 @@
             let jbid= JSON.parse(JSON.stringify(bbb).replace(/full_text/g,"full_name"));
             this.settings = Object.assign(this.settings, jbid)
             parseCreateProjectSettings(this.settings)
+            console.log('this.settings');
             console.log(this.settings);
           }
         }
 
 
-        if(this.isEdit){
-          this.form.pname = this.project.taskName
-          this.form.actDateLimitText = this.formatDate(this.project.taskTime*1000, 'yyyy-MM-dd')
-          this.form.userDevelopName = this.project.taskMembersNameStr.split()
-          this.form.userDevelop = []
-          this.project.taskMemberList.map(item=>{
-            this.form.userDevelop.push(item.juid)
-          })
-          this.form.userDevelop = this.form.userDevelop.toString()
-        }
+        
       },
       async save () {
-        console.log(this.form,'this.form')
+        
         let params = {
           taskName:this.form.pname,
           taskTime:parseInt(new Date(this.form.actDateLimitText).getTime()/1000),
@@ -377,8 +386,6 @@
         }
         // let { c, d } = await creatSafeTask()
         // openWindow('project_safe.html')
-        console.log(params,'params')
-
         let errors = {
           taskName: '请输入任务名称',
           taskTime: '请选择时间',
