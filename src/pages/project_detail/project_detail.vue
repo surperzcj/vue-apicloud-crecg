@@ -164,10 +164,10 @@
               <div class="title">安全协议</div>
               <p v-html="agreementData.content"></p>
               <div class="consent" @click="tyxy = !tyxy">
-              <span class="gou">
-                <img v-show="tyxy" src="../../assets/images/icon-right.png">
-              </span>我已了解安全协议细则</div>
-            </div>
+                <span class="gou">
+                  <img v-show="tyxy" src="../../assets/images/icon-right.png">
+                </span>我已了解安全协议细则</div>
+              </div>
             
             <div class="button">
               <div class="ty btn" @click="checkProtocol(false)" :class="tyxy? '':'huiBg'">我已阅读</div>
@@ -514,6 +514,8 @@
           font-size: 13px;
           color: #6877CD;
           margin-top:15px;
+          margin-bottom:48px;
+
         .gou{
           width: 15px;
           height: 15px;
